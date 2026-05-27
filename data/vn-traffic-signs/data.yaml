@@ -1,5 +1,6 @@
-train: data/vn-traffic-signs/images
-val: data/vn-traffic-signs/images
+path: .
+train: split_dataset/train_files.txt
+val: split_dataset/test_files.txt
 nc: 52
 names:
   0: "Pedestrian Crossing"
