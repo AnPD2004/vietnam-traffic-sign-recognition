@@ -43,11 +43,11 @@ if DEFAULT_DEVICE != 'cpu':
 VI_CLASSES = []
 EN_CLASSES = []
 VIDEO_JOBS = {}
-VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '4')))
-VIDEO_IMGSZ = max(640, int(os.getenv('VIDEO_IMGSZ', '640')))
+VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '2')))
+VIDEO_IMGSZ = max(640, int(os.getenv('VIDEO_IMGSZ', '1080')))
 VIDEO_FRAME_MAX_WIDTH = max(320, int(os.getenv('VIDEO_FRAME_MAX_WIDTH', '1080')))
 # ms to wait for a batch to fill before processing a partial batch
-VIDEO_BATCH_TIMEOUT_MS = max(1, int(os.getenv('VIDEO_BATCH_TIMEOUT_MS', '40')))
+VIDEO_BATCH_TIMEOUT_MS = max(1, int(os.getenv('VIDEO_BATCH_TIMEOUT_MS', '20')))
 USE_HALF = DEFAULT_DEVICE != 'cpu'
 try:
     en_path = os.path.join('data', 'vn-traffic-signs', 'classes_en.txt')
@@ -145,10 +145,26 @@ def annotate_bgr_frame(img_bgr, results):
         en_label = EN_CLASSES[int(cl)] if 0 <= int(cl) < len(EN_CLASSES) else None
         text = f"{(vi_label or en_label or str(cl))} {c:.2f}"
 
-        (text_w, text_h), baseline = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        y0 = max(0, y1i - text_h - baseline - 4)
-        cv2.rectangle(img_bgr, (x1i, y0), (x1i + text_w + 4, y1i), (0, 0, 255), -1)
-        cv2.putText(img_bgr, text, (x1i + 2, y1i - baseline - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.75
+        font_thickness = 2
+        (text_w, text_h), baseline = cv2.getTextSize(text, font, font_scale, font_thickness)
+        pad_x = 8
+        pad_y = 6
+        box_h = text_h + baseline + pad_y * 2
+        box_w = text_w + pad_x * 2
+        y0 = y1i - box_h - 4
+        if y0 < 0:
+            y0 = y2i + 4
+        y1_box = max(0, y0)
+        y2_box = min(img_bgr.shape[0] - 1, y1_box + box_h)
+        x2_box = min(img_bgr.shape[1] - 1, x1i + box_w)
+        cv2.rectangle(img_bgr, (x1i, y1_box), (x2_box, y2_box), (0, 0, 0), -1)
+        cv2.rectangle(img_bgr, (x1i, y1_box), (x2_box, y2_box), (255, 255, 255), 1)
+        text_x = x1i + pad_x
+        text_y = y1_box + pad_y + text_h
+        cv2.putText(img_bgr, text, (text_x, text_y), font, font_scale, (0, 0, 0), 4, cv2.LINE_AA)
+        cv2.putText(img_bgr, text, (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
 
     return img_bgr
 
@@ -256,10 +272,26 @@ def annotate_tracks_frame(img_bgr, tracks):
             continue
         cv2.rectangle(img_bgr, (x1i, y1i), (x2i, y2i), (16, 200, 50), 2)
         label = f"#{tr['id']} {tr.get('class_name', tr.get('class_id', ''))} {tr.get('confidence',0):.2f}"
-        (text_w, text_h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
-        y0 = max(0, y1i - text_h - baseline - 4)
-        cv2.rectangle(img_bgr, (x1i, y0), (x1i + text_w + 4, y1i), (0, 0, 255), -1)
-        cv2.putText(img_bgr, label, (x1i + 2, y1i - baseline - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        font_scale = 0.75
+        font_thickness = 2
+        (text_w, text_h), baseline = cv2.getTextSize(label, font, font_scale, font_thickness)
+        pad_x = 8
+        pad_y = 6
+        box_h = text_h + baseline + pad_y * 2
+        box_w = text_w + pad_x * 2
+        y0 = y1i - box_h - 4
+        if y0 < 0:
+            y0 = y2i + 4
+        y1_box = max(0, y0)
+        y2_box = min(img_bgr.shape[0] - 1, y1_box + box_h)
+        x2_box = min(img_bgr.shape[1] - 1, x1i + box_w)
+        cv2.rectangle(img_bgr, (x1i, y1_box), (x2_box, y2_box), (0, 0, 0), -1)
+        cv2.rectangle(img_bgr, (x1i, y1_box), (x2_box, y2_box), (255, 255, 255), 1)
+        text_x = x1i + pad_x
+        text_y = y1_box + pad_y + text_h
+        cv2.putText(img_bgr, label, (text_x, text_y), font, font_scale, (0, 0, 0), 4, cv2.LINE_AA)
+        cv2.putText(img_bgr, label, (text_x, text_y), font, font_scale, (255, 255, 255), font_thickness, cv2.LINE_AA)
     return img_bgr
 
 

@@ -12,7 +12,5 @@ wheels/
 # data
 data/
 
-*.pt
-
 node_modules/
 dist/

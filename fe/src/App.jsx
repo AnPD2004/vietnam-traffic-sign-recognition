@@ -12,6 +12,7 @@ export default function App() {
   const [videoStreamSrc, setVideoStreamSrc] = useState(null)
   const [videoStatus, setVideoStatus] = useState('')
   const [videoFps, setVideoFps] = useState(null)
+  const [detectHistory, setDetectHistory] = useState([])
   const lastFrameTimeRef = useRef(null)
   const previewRef = useRef(null)
   const [isFs, setIsFs] = useState(false)
@@ -64,6 +65,7 @@ export default function App() {
     setVideoFrames(null)
     setVideoFps(null)
     setVideoStatus('Connecting to server...')
+    setDetectHistory([])
     lastFrameTimeRef.current = null
 
     try {
@@ -134,7 +136,18 @@ export default function App() {
           } else if (data.type === 'frame_meta') {
             setVideoFrames(data.frame + 1)
             setVideoStatus(`Processing frame ${data.frame + 1}...`)
-            setDetections(data.detections || [])
+            const currentDetections = data.detections || []
+            setDetections(currentDetections)
+            if (currentDetections.length > 0) {
+              setDetectHistory((prev) => {
+                const nextItems = currentDetections
+                  .map((d) => d.class_name)
+                  .filter(Boolean)
+                if (nextItems.length === 0) return prev
+                const merged = [...prev, ...nextItems]
+                return merged.slice(-80)
+              })
+            }
           } else if (data.type === 'done') {
             setVideoFrames(data.frames)
             setVideoStatus(`Done. Total frames: ${data.frames}`)
@@ -232,8 +245,9 @@ export default function App() {
             <div style={{marginBottom: 8, color: '#555'}}>
               FPS: {videoFps !== null ? videoFps : '...'}
             </div>
-            <div style={{display:'flex', gap:16}}>
-              <div ref={previewRef} className={"video-preview" + (isFs ? " fullwidth" : "")}>
+            <div className="video-layout">
+              <div className="video-stack">
+                <div ref={previewRef} className={"video-preview" + (isFs ? " fullwidth" : "")}> 
                 {videoStreamSrc ? (
                   <>
                     <img src={videoStreamSrc} alt="stream" />
@@ -262,24 +276,32 @@ export default function App() {
                   <div style={{padding: 12, border: '1px dashed #aaa', color:'#999'}}>No stream yet</div>
                 )}
               </div>
-              <div className="detections-panel">
-                {videoFrames !== null && <div>Frames processed: {videoFrames}</div>}
-                {videoAnnotated && <div>Final annotated video ready</div>}
-                <div style={{marginTop: 12}}>
-                  <h3>Detections</h3>
-                  <ul style={{paddingLeft: 12, marginTop: 8}}>
-                    {detections.length === 0 && <li>No detections</li>}
-                    {detections.map((d, i) => {
-                      const vi = VI_MAP[d.class_name] || VI_MAP[d.class_id] || d.class_name
-                      return (
-                        <li key={i} style={{marginBottom:6}}>
-                          <strong>{vi}</strong><br/>
-                          <small>{d.class_name} (id: {d.class_id}) — conf: {d.confidence.toFixed(3)}</small>
-                        </li>
-                      )
-                    })}
-                  </ul>
+              </div>
+              <div className="history-panel">
+                <div className="history-header">
+                  <h3>Detect History</h3>
+                  <div className="history-meta">{videoFrames !== null ? `${videoFrames} frames` : 'No frames yet'}</div>
                 </div>
+                {(() => {
+                  const grouped = new Map()
+                  for (const name of [...detectHistory].reverse()) {
+                    if (!name) continue
+                    grouped.set(name, (grouped.get(name) || 0) + 1)
+                  }
+                  const historyItems = Array.from(grouped.entries())
+                  return (
+                <div className="history-list">
+                  {historyItems.length === 0 ? (
+                    <div className="history-empty">No detections yet</div>
+                  ) : (
+                    historyItems.map(([name]) => (
+                      <div key={name} className="history-item">{VI_MAP[name] || name}</div>
+                    ))
+                  )}
+                </div>
+                  )
+                })()}
+                {videoAnnotated && <div style={{marginTop: 8}}>Final annotated video ready</div>}
               </div>
             </div>
           </div>

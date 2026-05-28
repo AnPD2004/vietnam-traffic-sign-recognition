@@ -1,13 +1,27 @@
-.container { max-width: 900px; margin: 0 auto; }
+.container { max-width: 1240px; margin: 0 auto; }
 .form { margin-bottom: 16px; }
 .annotated { max-width: 100%; height: auto; border: 1px solid #ddd; }
 .results { display: flex; gap: 24px; align-items: flex-start; }
 /* Video stream and detections layout: reserve fixed area to avoid reflow/tearing */
-.video-panel { flex: 1 1 900px; min-width: 480px; max-width: 1200px; }
-.video-preview { width: 100%; height: 540px; background: #111; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative; }
+.video-panel { width: 100%; max-width: none; }
+.video-layout { display: grid; grid-template-columns: minmax(0, 1fr) 280px; gap: 16px; align-items: start; width: 100%; }
+.video-stack { display: flex; flex-direction: column; gap: 14px; width: 100%; min-width: 0; }
+.video-preview { width: 100%; aspect-ratio: 16 / 9; min-height: 420px; max-height: 72vh; background: #111; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative; border-radius: 12px; will-change: contents; }
 .video-preview img { width: 100%; height: 100%; object-fit: contain; display:block }
 .video-preview.fullwidth { width: 100vw; max-width: none; margin-left: calc(-50vw + 50%); }
 .fs-btn { position: absolute; right: 12px; bottom: 12px; background: rgba(0,0,0,0.6); color: #fff; border: none; padding: 8px 10px; border-radius: 4px; cursor: pointer; z-index: 40 }
 .fs-btn:hover { background: rgba(0,0,0,0.8); }
-.detections-panel { width: 320px; flex: 0 0 320px; max-height: 540px; overflow: auto; border-left: 1px solid #eee; padding-left: 12px }
+.history-panel { width: 100%; min-width: 0; max-height: 72vh; overflow: hidden; border-left: 1px solid #eee; padding-left: 14px; }
+.history-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 10px; }
+.history-meta { color: #666; font-size: 0.9rem; }
+.history-list { max-height: calc(72vh - 64px); overflow: auto; display: flex; flex-direction: column; gap: 8px; padding-right: 4px; }
+.history-item { padding: 8px 10px; border: 1px solid #e6e6e6; border-radius: 8px; background: #fafafa; }
+.history-empty { color: #999; font-style: italic; }
 ul { padding-left: 18px; }
+
+@media (max-width: 900px) {
+	.container { max-width: 100%; padding: 0 12px; }
+	.video-layout { grid-template-columns: 1fr; }
+	.history-panel { border-left: none; padding-left: 0; border-top: 1px solid #eee; padding-top: 12px; }
+	.video-preview { min-height: 260px; max-height: 58vh; }
+}
