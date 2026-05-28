@@ -1,8 +1,8 @@
 task: detect
 mode: train
 model: yolov8n.pt
-data: C:\Users\Admin\AppData\Local\Temp\flow1_data_uie_6n39\data.resolved.yaml
-epochs: 5
+data: C:\Users\Admin\AppData\Local\Temp\flow1_data_xqvmry56\data.resolved.yaml
+epochs: 100
 time: null
 patience: 30
 batch: 16
