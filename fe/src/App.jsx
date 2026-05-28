@@ -1,4 +1,4 @@
-import React, { useRef, useState } from 'react'
+import React, { useRef, useState, useEffect } from 'react'
 import VI_MAP from './viMap'
 
 export default function App() {
@@ -13,6 +13,16 @@ export default function App() {
   const [videoStatus, setVideoStatus] = useState('')
   const [videoFps, setVideoFps] = useState(null)
   const lastFrameTimeRef = useRef(null)
+  const previewRef = useRef(null)
+  const [isFs, setIsFs] = useState(false)
+
+  useEffect(() => {
+    function onFsChange() {
+      setIsFs(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', onFsChange)
+    return () => document.removeEventListener('fullscreenchange', onFsChange)
+  }, [])
 
   function pushDebug(message) {
     const line = `${new Date().toLocaleTimeString()} ${message}`
@@ -223,9 +233,31 @@ export default function App() {
               FPS: {videoFps !== null ? videoFps : '...'}
             </div>
             <div style={{display:'flex', gap:16}}>
-              <div className="video-preview">
+              <div ref={previewRef} className={"video-preview" + (isFs ? " fullwidth" : "")}>
                 {videoStreamSrc ? (
-                  <img src={videoStreamSrc} alt="stream" />
+                  <>
+                    <img src={videoStreamSrc} alt="stream" />
+                    <button
+                      className="fs-btn"
+                      onClick={() => {
+                        try {
+                          if (!document.fullscreenElement) {
+                            const el = previewRef.current
+                            if (el.requestFullscreen) el.requestFullscreen()
+                            else if (el.webkitRequestFullscreen) el.webkitRequestFullscreen()
+                          } else {
+                            if (document.exitFullscreen) document.exitFullscreen()
+                            else if (document.webkitExitFullscreen) document.webkitExitFullscreen()
+                          }
+                        } catch (e) {
+                          console.error('fullscreen error', e)
+                        }
+                      }}
+                      title={isFs ? 'Exit fullscreen' : 'Fullscreen'}
+                    >
+                      {isFs ? '⤫' : '⤢'}
+                    </button>
+                  </>
                 ) : (
                   <div style={{padding: 12, border: '1px dashed #aaa', color:'#999'}}>No stream yet</div>
                 )}

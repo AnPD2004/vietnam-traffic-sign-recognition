@@ -1,11 +1,13 @@
-body { font-family: Arial, sans-serif; margin: 20px; }
 .container { max-width: 900px; margin: 0 auto; }
 .form { margin-bottom: 16px; }
 .annotated { max-width: 100%; height: auto; border: 1px solid #ddd; }
 .results { display: flex; gap: 24px; align-items: flex-start; }
 /* Video stream and detections layout: reserve fixed area to avoid reflow/tearing */
 .video-panel { flex: 1 1 900px; min-width: 480px; max-width: 1200px; }
-.video-preview { width: 100%; height: 540px; background: #222; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.video-preview { width: 100%; height: 540px; background: #111; display:flex; align-items:center; justify-content:center; overflow:hidden; position: relative; }
 .video-preview img { width: 100%; height: 100%; object-fit: contain; display:block }
+.video-preview.fullwidth { width: 100vw; max-width: none; margin-left: calc(-50vw + 50%); }
+.fs-btn { position: absolute; right: 12px; bottom: 12px; background: rgba(0,0,0,0.6); color: #fff; border: none; padding: 8px 10px; border-radius: 4px; cursor: pointer; z-index: 40 }
+.fs-btn:hover { background: rgba(0,0,0,0.8); }
 .detections-panel { width: 320px; flex: 0 0 320px; max-height: 540px; overflow: auto; border-left: 1px solid #eee; padding-left: 12px }
 ul { padding-left: 18px; }

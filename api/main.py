@@ -43,10 +43,11 @@ if DEFAULT_DEVICE != 'cpu':
 VI_CLASSES = []
 EN_CLASSES = []
 VIDEO_JOBS = {}
-VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '2')))
+VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '4')))
 VIDEO_IMGSZ = max(640, int(os.getenv('VIDEO_IMGSZ', '640')))
+VIDEO_FRAME_MAX_WIDTH = max(320, int(os.getenv('VIDEO_FRAME_MAX_WIDTH', '1080')))
 # ms to wait for a batch to fill before processing a partial batch
-VIDEO_BATCH_TIMEOUT_MS = max(1, int(os.getenv('VIDEO_BATCH_TIMEOUT_MS', '50')))
+VIDEO_BATCH_TIMEOUT_MS = max(1, int(os.getenv('VIDEO_BATCH_TIMEOUT_MS', '40')))
 USE_HALF = DEFAULT_DEVICE != 'cpu'
 try:
     en_path = os.path.join('data', 'vn-traffic-signs', 'classes_en.txt')
@@ -91,7 +92,7 @@ def results_to_contract(results):
     return detections
 
 
-def frame_to_b64(frame_bgr, quality=80, max_width=640):
+def frame_to_b64(frame_bgr, quality=80, max_width=VIDEO_FRAME_MAX_WIDTH):
     # Resize to reduce encoding cost and bandwidth
     try:
         h, w = frame_bgr.shape[:2]
@@ -111,7 +112,7 @@ def frame_to_b64(frame_bgr, quality=80, max_width=640):
     return base64.b64encode(buffer.tobytes()).decode('utf-8')
 
 
-def frame_to_jpeg_bytes(frame_bgr, quality=80, max_width=640):
+def frame_to_jpeg_bytes(frame_bgr, quality=80, max_width=VIDEO_FRAME_MAX_WIDTH):
     # Similar to frame_to_b64 but returns raw jpeg bytes (no base64)
     try:
         h, w = frame_bgr.shape[:2]
@@ -154,6 +155,126 @@ def annotate_bgr_frame(img_bgr, results):
 
 def extract_detections(results):
     return results_to_contract(results)
+
+
+# --- Simple lightweight tracker helpers to smooth detections across frames ---
+def _iou(boxA, boxB):
+    # boxes: [x1,y1,x2,y2]
+    xA = max(boxA[0], boxB[0])
+    yA = max(boxA[1], boxB[1])
+    xB = min(boxA[2], boxB[2])
+    yB = min(boxA[3], boxB[3])
+    interW = max(0.0, xB - xA)
+    interH = max(0.0, yB - yA)
+    interArea = interW * interH
+    boxAArea = max(0.0, boxA[2] - boxA[0]) * max(0.0, boxA[3] - boxA[1])
+    boxBArea = max(0.0, boxB[2] - boxB[0]) * max(0.0, boxB[3] - boxB[1])
+    denom = boxAArea + boxBArea - interArea
+    if denom <= 0:
+        return 0.0
+    return interArea / denom
+
+
+def update_tracks(tracks, detections, frame_idx, next_id, max_age=5, iou_thresh=0.35, alpha=0.65):
+    """
+    tracks: dict of track_id -> track dict
+    detections: list of det dicts with 'bbox','class_id','class_name','confidence'
+    next_id: int next track id to use when creating new tracks
+
+    Returns updated next_id. tracks is modified in-place.
+    """
+    # mark all tracks as unmatched initially
+    for t in tracks.values():
+        t['matched'] = False
+
+    # greedy matching by detection confidence
+    dets = sorted(enumerate(detections), key=lambda ic: -ic[1].get('confidence', 0.0))
+    used_tracks = set()
+    for det_idx, det in dets:
+        best_tid = None
+        best_iou = 0.0
+        for tid, tr in tracks.items():
+            if tr.get('matched'):
+                continue
+            i = _iou(tr['bbox'], det['bbox'])
+            if i > best_iou:
+                best_iou = i
+                best_tid = tid
+
+        if best_tid is not None and best_iou >= iou_thresh:
+            # update existing track with EMA smoothing for bbox and replace class/confidence
+            tr = tracks[best_tid]
+            old = tr['bbox']
+            new = det['bbox']
+            sm = [alpha * nv + (1.0 - alpha) * ov for nv, ov in zip(new, old)]
+            tr['bbox'] = sm
+            tr['class_id'] = det.get('class_id', tr.get('class_id'))
+            tr['class_name'] = det.get('class_name', tr.get('class_name'))
+            tr['confidence'] = max(det.get('confidence', 0.0), tr.get('confidence', 0.0))
+            tr['last_seen'] = frame_idx
+            tr['missed'] = 0
+            tr['matched'] = True
+            used_tracks.add(best_tid)
+        else:
+            # create new track
+            tid = next_id
+            next_id += 1
+            tracks[tid] = {
+                'id': tid,
+                'bbox': list(map(float, det['bbox'])),
+                'class_id': det.get('class_id'),
+                'class_name': det.get('class_name'),
+                'confidence': det.get('confidence', 0.0),
+                'last_seen': frame_idx,
+                'missed': 0,
+                'matched': True,
+            }
+
+    # increase missed counters for unmatched tracks
+    remove_ids = []
+    for tid, tr in list(tracks.items()):
+        if not tr.get('matched'):
+            tr['missed'] = tr.get('missed', 0) + 1
+        # prune old tracks
+        if tr.get('missed', 0) > max_age:
+            remove_ids.append(tid)
+        # cleanup helper flag
+        tr.pop('matched', None)
+
+    for rid in remove_ids:
+        tracks.pop(rid, None)
+
+    return next_id
+
+
+def annotate_tracks_frame(img_bgr, tracks):
+    # draw stable track boxes and labels
+    for tr in tracks.values():
+        try:
+            x1i, y1i, x2i, y2i = map(int, tr['bbox'])
+        except Exception:
+            continue
+        cv2.rectangle(img_bgr, (x1i, y1i), (x2i, y2i), (16, 200, 50), 2)
+        label = f"#{tr['id']} {tr.get('class_name', tr.get('class_id', ''))} {tr.get('confidence',0):.2f}"
+        (text_w, text_h), baseline = cv2.getTextSize(label, cv2.FONT_HERSHEY_SIMPLEX, 0.5, 1)
+        y0 = max(0, y1i - text_h - baseline - 4)
+        cv2.rectangle(img_bgr, (x1i, y0), (x1i + text_w + 4, y1i), (0, 0, 255), -1)
+        cv2.putText(img_bgr, label, (x1i + 2, y1i - baseline - 2), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 1, cv2.LINE_AA)
+    return img_bgr
+
+
+def tracks_to_contract(tracks):
+    out = []
+    for tr in tracks.values():
+        out.append({
+            'track_id': int(tr['id']),
+            'bbox': [float(v) for v in tr['bbox']],
+            'class_id': int(tr['class_id']) if tr.get('class_id') is not None else None,
+            'class_name': tr.get('class_name'),
+            'confidence': float(tr.get('confidence', 0.0)),
+            'source': 'yolo',
+        })
+    return out
 
 
 def predict_frame_batch(batch_frames_rgb):
@@ -339,6 +460,13 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
 
         frame_idx = 0
         batch_frames_rgb = []
+        # per-connection lightweight tracker state
+        ws_tracks = {}
+        ws_next_track_id = 1
+        # tuning params (can be exposed via env or query params)
+        TRACK_MAX_AGE = 5
+        TRACK_IOU_THRESH = 0.35
+        TRACK_ALPHA = 0.65
         batch_frame_indices = []
         batch_start_time = None
         try:
@@ -354,7 +482,7 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                 if frame_idx == 0:
                     # offload quick preview encoding to threadpool to avoid blocking
                     try:
-                        preview_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, frame, 70, 640)
+                        preview_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, frame, 70, VIDEO_FRAME_MAX_WIDTH)
                         if preview_bytes:
                             await websocket.send_bytes(preview_bytes)
                             await websocket.send_json({"type": "preview", "frame": frame_idx})
@@ -388,21 +516,33 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                 enc_total = 0.0
                 for batch_frame_idx, frame_rgb, results in zip(batch_frame_indices, batch_frames_rgb, results_list):
                     annotated_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-                    annotated_bgr = annotate_bgr_frame(annotated_bgr, results)
+
+                    # get raw detections and update per-connection tracker
+                    raw_dets = extract_detections(results)
+                    try:
+                        ws_next_track_id = update_tracks(ws_tracks, raw_dets, batch_frame_idx, ws_next_track_id,
+                                                         max_age=TRACK_MAX_AGE, iou_thresh=TRACK_IOU_THRESH, alpha=TRACK_ALPHA)
+                    except Exception:
+                        # fallback: if tracker fails, keep using raw detections
+                        pass
+
+                    # draw stable tracks instead of raw per-frame detections
+                    annotated_bgr = annotate_tracks_frame(annotated_bgr, ws_tracks)
+
                     t_enc0 = time.time()
-                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, 640)
+                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, VIDEO_FRAME_MAX_WIDTH)
                     t_enc1 = time.time()
                     enc_time = t_enc1 - t_enc0
                     enc_total += enc_time
                     if not jpeg_bytes:
                         continue
-                    # send binary frame then metadata JSON with detections
+                    # send binary frame then metadata JSON with detections (from tracker)
                     try:
                         await websocket.send_bytes(jpeg_bytes)
                         await websocket.send_json({
                             "type": "frame_meta",
                             "frame": batch_frame_idx,
-                            "detections": extract_detections(results),
+                            "detections": tracks_to_contract(ws_tracks),
                         })
                     except Exception:
                         pass
@@ -434,9 +574,17 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                 enc_total = 0.0
                 for batch_frame_idx, frame_rgb, results in zip(batch_frame_indices, batch_frames_rgb, results_list):
                     annotated_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
-                    annotated_bgr = annotate_bgr_frame(annotated_bgr, results)
+
+                    raw_dets = extract_detections(results)
+                    try:
+                        ws_next_track_id = update_tracks(ws_tracks, raw_dets, batch_frame_idx, ws_next_track_id,
+                                                         max_age=TRACK_MAX_AGE, iou_thresh=TRACK_IOU_THRESH, alpha=TRACK_ALPHA)
+                    except Exception:
+                        pass
+
+                    annotated_bgr = annotate_tracks_frame(annotated_bgr, ws_tracks)
                     t_enc0 = time.time()
-                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, 640)
+                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, VIDEO_FRAME_MAX_WIDTH)
                     t_enc1 = time.time()
                     enc_time = t_enc1 - t_enc0
                     enc_total += enc_time
@@ -447,7 +595,7 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                         await websocket.send_json({
                             "type": "frame_meta",
                             "frame": batch_frame_idx,
-                            "detections": extract_detections(results),
+                            "detections": tracks_to_contract(ws_tracks),
                         })
                     except Exception:
                         pass
