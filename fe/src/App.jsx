@@ -12,13 +12,11 @@ export default function App() {
   const [videoStreamSrc, setVideoStreamSrc] = useState(null)
   const [videoStatus, setVideoStatus] = useState('')
   const [videoFps, setVideoFps] = useState(null)
-  const [debugLines, setDebugLines] = useState([])
   const lastFrameTimeRef = useRef(null)
 
   function pushDebug(message) {
     const line = `${new Date().toLocaleTimeString()} ${message}`
     console.log(line)
-    setDebugLines((prev) => [line, ...prev].slice(0, 12))
   }
 
   async function handleSubmit(e) {
@@ -78,6 +76,7 @@ export default function App() {
       pushDebug(`Connecting websocket: ${wsUrl}`)
       const ws = new WebSocket(wsUrl)
       ws.binaryType = 'arraybuffer'
+      let lastBlobUrl = null
 
       ws.onopen = () => {
         pushDebug('WebSocket open')
@@ -86,33 +85,43 @@ export default function App() {
 
       ws.onmessage = (evt) => {
         try {
+          // binary frame (ArrayBuffer) -> create blob URL and set as src
+          if (evt.data instanceof ArrayBuffer || evt.data instanceof Blob) {
+            const arr = evt.data instanceof ArrayBuffer ? evt.data : evt.data.arrayBuffer()
+            Promise.resolve(arr).then((buf) => {
+              const blob = new Blob([buf], { type: 'image/jpeg' })
+              const url = URL.createObjectURL(blob)
+              if (lastBlobUrl) URL.revokeObjectURL(lastBlobUrl)
+              lastBlobUrl = url
+              const now = performance.now()
+              if (lastFrameTimeRef.current !== null) {
+                const deltaMs = now - lastFrameTimeRef.current
+                if (deltaMs > 0) {
+                  const instantFps = 1000 / deltaMs
+                  setVideoFps(instantFps.toFixed(1))
+                }
+              }
+              lastFrameTimeRef.current = now
+              setVideoStreamSrc(url)
+            }).catch((e) => console.error('blob create error', e))
+            return
+          }
+
           const data = JSON.parse(evt.data)
           pushDebug(`WS message: ${data.type}`)
           if (data.type === 'started') {
             setVideoStatus('Video received. Decoding and preparing frames...')
           } else if (data.type === 'started_preview') {
-            setVideoStreamSrc('data:image/jpeg;base64,' + data.image_b64)
             setVideoFrames(0)
             setVideoFps(null)
             setVideoStatus('Video received. Showing placeholder preview...')
             setDetections([])
           } else if (data.type === 'preview') {
-            setVideoStreamSrc('data:image/jpeg;base64,' + data.image_b64)
             setVideoFrames(data.frame + 1)
             setVideoFps(null)
             setVideoStatus('Showing initial preview frame...')
             setDetections([])
-          } else if (data.type === 'frame') {
-            const now = performance.now()
-            if (lastFrameTimeRef.current !== null) {
-              const deltaMs = now - lastFrameTimeRef.current
-              if (deltaMs > 0) {
-                const instantFps = 1000 / deltaMs
-                setVideoFps(instantFps.toFixed(1))
-              }
-            }
-            lastFrameTimeRef.current = now
-            setVideoStreamSrc('data:image/jpeg;base64,' + data.image_b64)
+          } else if (data.type === 'frame_meta') {
             setVideoFrames(data.frame + 1)
             setVideoStatus(`Processing frame ${data.frame + 1}...`)
             setDetections(data.detections || [])
@@ -142,6 +151,14 @@ export default function App() {
       }
 
       ws.onclose = () => {
+        try {
+          if (lastBlobUrl) {
+            URL.revokeObjectURL(lastBlobUrl)
+            lastBlobUrl = null
+          }
+        } catch (e) {
+          console.warn('failed to revoke blob url', e)
+        }
         pushDebug(`WebSocket closed. frames=${videoFrames ?? 'none'}, status=${videoStatus || 'empty'}`)
         if (videoFrames === null) {
           setVideoStatus('WebSocket closed before any frame arrived')
@@ -199,42 +216,44 @@ export default function App() {
         )}
 
         {tab === 'video' && (
-          <div>
+          <div className="video-panel">
             <h2>Video Stream Preview</h2>
             <div style={{marginBottom: 8, color: '#555'}}>{videoStatus || 'Choose a video and click Predict Video'}</div>
             <div style={{marginBottom: 8, color: '#555'}}>
               FPS: {videoFps !== null ? videoFps : '...'}
             </div>
-            {videoStreamSrc ? (
-              <img src={videoStreamSrc} alt="stream" style={{maxWidth:'100%'}} />
-            ) : (
-              <div style={{padding: 12, border: '1px dashed #aaa'}}>No stream yet</div>
-            )}
-            {videoFrames !== null && <div>Frames processed: {videoFrames}</div>}
-            {videoAnnotated && <div>Final annotated video ready</div>}
-            <div style={{marginTop: 16}}>
-              <h3>Debug log</h3>
-              <pre style={{whiteSpace: 'pre-wrap', background: '#111', color: '#0f0', padding: 12, minHeight: 120}}>
-{debugLines.length ? debugLines.join('\n') : 'No debug events yet'}
-              </pre>
+            <div style={{display:'flex', gap:16}}>
+              <div className="video-preview">
+                {videoStreamSrc ? (
+                  <img src={videoStreamSrc} alt="stream" />
+                ) : (
+                  <div style={{padding: 12, border: '1px dashed #aaa', color:'#999'}}>No stream yet</div>
+                )}
+              </div>
+              <div className="detections-panel">
+                {videoFrames !== null && <div>Frames processed: {videoFrames}</div>}
+                {videoAnnotated && <div>Final annotated video ready</div>}
+                <div style={{marginTop: 12}}>
+                  <h3>Detections</h3>
+                  <ul style={{paddingLeft: 12, marginTop: 8}}>
+                    {detections.length === 0 && <li>No detections</li>}
+                    {detections.map((d, i) => {
+                      const vi = VI_MAP[d.class_name] || VI_MAP[d.class_id] || d.class_name
+                      return (
+                        <li key={i} style={{marginBottom:6}}>
+                          <strong>{vi}</strong><br/>
+                          <small>{d.class_name} (id: {d.class_id}) — conf: {d.confidence.toFixed(3)}</small>
+                        </li>
+                      )
+                    })}
+                  </ul>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
-        <div>
-          <h2>Detections</h2>
-          <ul>
-            {detections.length === 0 && <li>No detections</li>}
-            {detections.map((d, i) => {
-              const vi = VI_MAP[d.class_name] || VI_MAP[d.class_id] || d.class_name
-              return (
-                <li key={i}>
-                  <strong>{vi}</strong> — {d.class_name} (id: {d.class_id}) — conf: {d.confidence.toFixed(3)} — bbox: [{d.bbox.map(v=>Math.round(v)).join(', ')}]
-                </li>
-              )
-            })}
-          </ul>
-        </div>
+        {/* Detections shown in the right-side panel of the video view */}
       </div>
     </div>
   )

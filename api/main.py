@@ -43,8 +43,10 @@ if DEFAULT_DEVICE != 'cpu':
 VI_CLASSES = []
 EN_CLASSES = []
 VIDEO_JOBS = {}
-VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '1')))
+VIDEO_BATCH_SIZE = max(1, int(os.getenv('VIDEO_BATCH_SIZE', '2')))
 VIDEO_IMGSZ = max(640, int(os.getenv('VIDEO_IMGSZ', '640')))
+# ms to wait for a batch to fill before processing a partial batch
+VIDEO_BATCH_TIMEOUT_MS = max(1, int(os.getenv('VIDEO_BATCH_TIMEOUT_MS', '50')))
 USE_HALF = DEFAULT_DEVICE != 'cpu'
 try:
     en_path = os.path.join('data', 'vn-traffic-signs', 'classes_en.txt')
@@ -107,6 +109,26 @@ def frame_to_b64(frame_bgr, quality=80, max_width=640):
     if not ok:
         return None
     return base64.b64encode(buffer.tobytes()).decode('utf-8')
+
+
+def frame_to_jpeg_bytes(frame_bgr, quality=80, max_width=640):
+    # Similar to frame_to_b64 but returns raw jpeg bytes (no base64)
+    try:
+        h, w = frame_bgr.shape[:2]
+    except Exception:
+        return None
+    if w > max_width:
+        scale = max_width / float(w)
+        new_w = int(w * scale)
+        new_h = int(h * scale)
+        frame = cv2.resize(frame_bgr, (new_w, new_h), interpolation=cv2.INTER_AREA)
+    else:
+        frame = frame_bgr
+
+    ok, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+    if not ok:
+        return None
+    return buffer.tobytes()
 
 
 def annotate_bgr_frame(img_bgr, results):
@@ -288,7 +310,7 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
         tmp_path = job["path"]
         print(f"[WS] start stream job_id={job_id} path={tmp_path}", flush=True)
 
-        # send an immediate placeholder so the frontend shows something right away
+        # send an immediate placeholder image (binary) so the frontend shows something right away
         placeholder = Image.new('RGB', (640, 360), (20, 20, 20))
         placeholder_draw = ImageDraw.Draw(placeholder)
         try:
@@ -298,7 +320,12 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
         placeholder_draw.text((24, 24), "Video received. Decoding...", fill=(255, 255, 255), font=placeholder_font)
         buf = io.BytesIO()
         placeholder.save(buf, format='JPEG')
-        await websocket.send_json({"type": "started_preview", "frame": 0, "image_b64": base64.b64encode(buf.getvalue()).decode('utf-8')})
+        # send binary image first, then a small JSON meta so frontend knows it's a preview
+        try:
+            await websocket.send_bytes(buf.getvalue())
+            await websocket.send_json({"type": "started_preview", "frame": 0})
+        except Exception:
+            pass
 
         cap = cv2.VideoCapture(tmp_path)
         if not cap.isOpened():
@@ -313,6 +340,7 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
         frame_idx = 0
         batch_frames_rgb = []
         batch_frame_indices = []
+        batch_start_time = None
         try:
             while True:
                 ret, frame = cap.read()
@@ -325,16 +353,25 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                 # send a quick preview of the raw frame before inference
                 if frame_idx == 0:
                     # offload quick preview encoding to threadpool to avoid blocking
-                    preview_b64 = await asyncio.to_thread(frame_to_b64, frame, 70, 640)
-                    if preview_b64:
-                        await websocket.send_json({"type": "preview", "frame": frame_idx, "image_b64": preview_b64})
-                        await asyncio.sleep(0)
+                    try:
+                        preview_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, frame, 70, 640)
+                        if preview_bytes:
+                            await websocket.send_bytes(preview_bytes)
+                            await websocket.send_json({"type": "preview", "frame": frame_idx})
+                            await asyncio.sleep(0)
+                    except Exception:
+                        pass
 
+                # append to batch; start timer on first frame
+                if not batch_frames_rgb:
+                    batch_start_time = time.time()
                 batch_frames_rgb.append(img_rgb)
                 batch_frame_indices.append(frame_idx)
                 frame_idx += 1
 
-                if len(batch_frames_rgb) < VIDEO_BATCH_SIZE:
+                # process if batch full or timeout exceeded
+                elapsed_ms = (time.time() - batch_start_time) * 1000 if batch_start_time else 0
+                if len(batch_frames_rgb) < VIDEO_BATCH_SIZE and elapsed_ms < VIDEO_BATCH_TIMEOUT_MS:
                     continue
                 # measure inference and encoding times
                 t0 = time.time()
@@ -353,18 +390,22 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                     annotated_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
                     annotated_bgr = annotate_bgr_frame(annotated_bgr, results)
                     t_enc0 = time.time()
-                    annotated_b64 = await asyncio.to_thread(frame_to_b64, annotated_bgr, 60, 640)
+                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, 640)
                     t_enc1 = time.time()
                     enc_time = t_enc1 - t_enc0
                     enc_total += enc_time
-                    if not annotated_b64:
+                    if not jpeg_bytes:
                         continue
-                    await websocket.send_json({
-                        "type": "frame",
-                        "frame": batch_frame_idx,
-                        "image_b64": annotated_b64,
-                        "detections": extract_detections(results),
-                    })
+                    # send binary frame then metadata JSON with detections
+                    try:
+                        await websocket.send_bytes(jpeg_bytes)
+                        await websocket.send_json({
+                            "type": "frame_meta",
+                            "frame": batch_frame_idx,
+                            "detections": extract_detections(results),
+                        })
+                    except Exception:
+                        pass
                     if batch_frame_idx % 10 == 0:
                         print(f"[WS] sent frame {batch_frame_idx}", flush=True)
 
@@ -377,6 +418,7 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
 
                 batch_frames_rgb = []
                 batch_frame_indices = []
+                batch_start_time = None
 
             if batch_frames_rgb:
                 t0 = time.time()
@@ -394,18 +436,21 @@ async def websocket_video_stream(websocket: WebSocket, job_id: str):
                     annotated_bgr = cv2.cvtColor(frame_rgb, cv2.COLOR_RGB2BGR)
                     annotated_bgr = annotate_bgr_frame(annotated_bgr, results)
                     t_enc0 = time.time()
-                    annotated_b64 = await asyncio.to_thread(frame_to_b64, annotated_bgr, 60, 640)
+                    jpeg_bytes = await asyncio.to_thread(frame_to_jpeg_bytes, annotated_bgr, 60, 640)
                     t_enc1 = time.time()
                     enc_time = t_enc1 - t_enc0
                     enc_total += enc_time
-                    if not annotated_b64:
+                    if not jpeg_bytes:
                         continue
-                    await websocket.send_json({
-                        "type": "frame",
-                        "frame": batch_frame_idx,
-                        "image_b64": annotated_b64,
-                        "detections": extract_detections(results),
-                    })
+                    try:
+                        await websocket.send_bytes(jpeg_bytes)
+                        await websocket.send_json({
+                            "type": "frame_meta",
+                            "frame": batch_frame_idx,
+                            "detections": extract_detections(results),
+                        })
+                    except Exception:
+                        pass
                     if batch_frame_idx % 10 == 0:
                         print(f"[WS] sent frame {batch_frame_idx}", flush=True)
 

@@ -3,4 +3,9 @@ body { font-family: Arial, sans-serif; margin: 20px; }
 .form { margin-bottom: 16px; }
 .annotated { max-width: 100%; height: auto; border: 1px solid #ddd; }
 .results { display: flex; gap: 24px; align-items: flex-start; }
+/* Video stream and detections layout: reserve fixed area to avoid reflow/tearing */
+.video-panel { flex: 1 1 900px; min-width: 480px; max-width: 1200px; }
+.video-preview { width: 100%; height: 540px; background: #222; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+.video-preview img { width: 100%; height: 100%; object-fit: contain; display:block }
+.detections-panel { width: 320px; flex: 0 0 320px; max-height: 540px; overflow: auto; border-left: 1px solid #eee; padding-left: 12px }
 ul { padding-left: 18px; }
