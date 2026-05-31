@@ -191,4 +191,3 @@ Khuyen nghi:
 - [ ] Co benchmark script xuat ket qua theo `flow1` va `flow2` tach biet.
 - [ ] Bao cao cuoi co bang so sanh dung cap:
       `YOLO end-to-end` vs `YOLO+CNN hybrid`.
-
