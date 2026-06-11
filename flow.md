@@ -141,8 +141,7 @@ flowchart TD
 
 ```text
 src/
-  data/
-    prepare_detection.py
+  build_crops/
     build_crops_for_cnn.py
   train/
     train_yolo.py
