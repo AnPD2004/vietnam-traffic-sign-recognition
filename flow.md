@@ -226,30 +226,30 @@ Compare model outputs
 
 # Development Checklist
 
-[ ] Verify YOLO dataset
+[x] Verify YOLO dataset — 3.216 ảnh/nhãn, 52 lớp, split train (2.552) / test (639); `data/vn-traffic-signs/data.yaml`
 
-[ ] Build crop dataset
+[x] Build crop dataset — script `src/build_crops/build_crops_for_cnn.py`; đã chạy (CNN train val: 1.645 mẫu)
 
 [ ] Train YOLOv5n
 
-[ ] Train YOLOv8n
+[x] Train YOLOv8n — 100 epochs; `runs/detect/artifacts/yolo_detect_cls/flow1_train/` (mAP50≈0.98)
 
 [ ] Train YOLOv11n
 
-[ ] Evaluate YOLO models
+[x] Evaluate YOLO models — chỉ YOLOv8n (`results.csv`, confusion matrix); chưa so sánh v5/v11
 
-[ ] Train ResNet50
+[ ] Train ResNet50 — code hiện dùng ResNet18, chưa hỗ trợ ResNet50
 
-[ ] Train EfficientNet-B0
+[ ] Train EfficientNet-B0 — hỗ trợ trong `train_cnn.py`, chưa train
 
-[ ] Evaluate CNN models
+[x] Evaluate CNN models — chỉ ResNet18 (`metrics.json`, acc≈96.1%, F1≈0.93); chưa so sánh EfficientNet
 
-[ ] Select best models
+[ ] Select best models — chưa benchmark đủ model để chọn
 
-[ ] Implement Flow 1
+[x] Implement Flow 1 — `src/pipelines/flow1_pipeline.py`
 
-[ ] Implement Flow 2
+[x] Implement Flow 2 — `src/pipelines/flow2_pipeline.py`
 
-[ ] Build Web Benchmark System
+[ ] Build Web Benchmark System — chưa có `src/web/`, `infer/`, Flask API
 
-[ ] Final Evaluation Report
+[ ] Final Evaluation Report — chưa có `reports/`
