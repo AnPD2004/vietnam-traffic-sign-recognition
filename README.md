@@ -1,42 +1,248 @@
-# Vietnamese Traffic Sign Recognition
+# Vietnamese Traffic Sign Recognition System
 
-## Chủ đề
+## Overview
 
-Dự án này tập trung vào việc xây dựng hệ thống nhận diện và phân loại biển báo giao thông Việt Nam sử dụng Deep Learning. Hệ thống có khả năng phát hiện vị trí và xác định loại biển báo trong ảnh, hỗ trợ các ứng dụng an toàn giao thông và tự động hóa phương tiện.
+This project focuses on building a Vietnamese Traffic Sign Recognition System using Deep Learning.
 
-## Nội dung
+The system is designed to detect and classify 52 Vietnamese traffic sign classes from images and videos.
 
-### Mục đích
+The research evaluates two different approaches:
 
-- Phát triển mô hình AI có thể nhận diện chính xác các loại biển báo giao thông phổ biến tại Việt Nam.
-- So sánh hiệu năng giữa hai phương pháp: phát hiện đối tượng (detection) và phân loại hình ảnh (classification).
-- Đóng góp vào việc cải thiện an toàn giao thông thông qua công nghệ trí tuệ nhân tạo.
+### Pipeline 1 – YOLO End-to-End
 
-### Ứng dụng
+A single YOLO model performs:
 
-- Hỗ trợ hệ thống lái xe tự động (autonomous vehicles) trong việc nhận diện biển báo.
-- Công cụ hỗ trợ người lái xe, cảnh báo biển báo quan trọng.
-- Nghiên cứu và phát triển trong lĩnh vực thị giác máy tính cho giao thông thông minh.
-- Có thể tích hợp vào ứng dụng di động hoặc hệ thống giám sát giao thông.
+* Traffic sign detection
+* Traffic sign classification
 
-## Công nghệ và Thuật toán
+### Pipeline 2 – YOLO + CNN Hybrid
 
-### Công nghệ chính
+YOLO is responsible for object localization, while CNN performs the final classification.
 
-- **Ngôn ngữ lập trình**: Python
-- **Thư viện Deep Learning**: PyTorch, Torchvision
-- **Framework YOLO**: Ultralytics (YOLOv8)
-- **Quản lý dự án**: uv (cho dependency management)
+The objective is to compare the trade-off between:
 
-### Thuật toán sử dụng
+* Accuracy
+* Inference speed
+* Model size
+* Real-world deployment capability
 
-- **YOLOv8n**: Mô hình phát hiện đối tượng (object detection) để xác định vị trí và phân loại biển báo trong ảnh. YOLOv8n là phiên bản nhẹ của YOLOv8, phù hợp cho việc triển khai trên thiết bị có tài nguyên hạn chế.
-- **CNN (Convolutional Neural Network)**: Mô hình phân loại hình ảnh để so sánh với YOLO. Sử dụng mạng nơ-ron tích chập để phân loại biển báo đã được crop từ ảnh gốc.
+---
 
-### So sánh thuật toán
+## Research Objectives
 
-Dự án sẽ so sánh hai phương pháp:
-- YOLOv8n: Phát hiện và phân loại trực tiếp trên ảnh toàn cảnh.
-- CNN: Phân loại trên vùng biển báo đã được cắt từ ảnh (sử dụng bounding box từ YOLO hoặc nhãn có sẵn).
+The project aims to:
 
-Tiêu chí so sánh bao gồm độ chính xác, tốc độ suy luận, kích thước mô hình và tính ứng dụng thực tế.
+* Build a traffic sign recognition system for Vietnam.
+* Train and evaluate multiple YOLO models.
+* Train and evaluate multiple CNN classifiers.
+* Compare detection and classification performance.
+* Compare End-to-End and Hybrid pipelines.
+* Deploy a web-based benchmark system.
+
+---
+
+## Models
+
+### Detection Models
+
+The following YOLO models are evaluated:
+
+* YOLOv5n
+* YOLOv8n
+* YOLOv11n
+
+Metrics:
+
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+* FPS
+* Model Size
+
+---
+
+### Classification Models
+
+The following CNN models are evaluated:
+
+* ResNet50
+* EfficientNet-B0
+
+Metrics:
+
+* Accuracy
+* Precision
+* Recall
+* F1-score
+* Confusion Matrix
+* Inference Time
+
+---
+
+## Dataset
+
+### Detection Dataset
+
+Format:
+
+images/
+labels/
+
+Number of classes:
+
+* 52 Vietnamese traffic sign classes
+
+Dataset size:
+
+* Approximately 3,216 images
+
+---
+
+### Classification Dataset
+
+Generated from detection labels by cropping traffic sign regions.
+
+Structure:
+
+crops/
+├── train/
+├── val/
+└── test/
+
+Each class is stored in an independent directory.
+
+---
+
+## System Architecture
+
+### Pipeline 1
+
+Image
+
+↓
+
+YOLO
+
+↓
+
+Bounding Box + Class
+
+---
+
+### Pipeline 2
+
+Image
+
+↓
+
+YOLO Detector
+
+↓
+
+Crop Traffic Sign
+
+↓
+
+CNN Classifier
+
+↓
+
+Final Class
+
+---
+
+## Technology Stack
+
+Programming Language:
+
+* Python
+
+Deep Learning Framework:
+
+* PyTorch
+* Torchvision
+
+Object Detection:
+
+* Ultralytics YOLO
+
+Web Framework:
+
+* Flask
+
+Utilities:
+
+* OpenCV
+* NumPy
+* Pandas
+* Matplotlib
+
+---
+
+## Project Structure
+
+src/
+├── build_crops/
+├── train/
+├── infer/
+├── pipelines/
+├── web/
+└── common/
+
+artifacts/
+├── yolo/
+└── cnn/
+
+configs/
+
+datasets/
+
+reports/
+
+---
+
+## Benchmark Strategy
+
+Stage 1:
+
+Compare:
+
+* YOLOv5n
+* YOLOv8n
+* YOLOv11n
+
+Stage 2:
+
+Compare:
+
+* ResNet50
+* EfficientNet-B0
+
+Stage 3:
+
+Compare:
+
+* Best YOLO End-to-End model
+* Best YOLO + CNN Hybrid model
+
+---
+
+## Expected Outputs
+
+* Trained YOLO models
+* Trained CNN models
+* Classification dataset
+* Web benchmark system
+* Experimental report
+* Performance comparison report
+
+---
+
+## Applications
+
+* ADAS
+* Autonomous Vehicles
+* Intelligent Transportation Systems
+* Traffic Monitoring Systems
+* Real-Time Traffic Sign Recognition

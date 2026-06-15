@@ -1,192 +1,255 @@
 # Project Flow - Vietnamese Traffic Sign Recognition
 
-Muc tieu tai lieu nay: dinh nghia ro 2 luong pipeline de implement, tranh nham thanh mot luong duy nhat.
+## Research Workflow
 
-## Nguyen tac tach bach bat buoc
-
-- Luong 1 la: `YOLO detect + YOLO du doan` (mot model YOLO thuc hien ca detect va classify class bien bao).
-- Luong 2 la: `YOLO detect + CNN du doan` (YOLO chi dung de lay bbox, class cuoi cung do CNN quyet dinh).
-- Hai luong co the dung chung mot detector YOLO, nhung **logic du doan cuoi** phai tach rieng.
-- Trong code, khong duoc de suy luan "neu co CNN thi thay class YOLO ngay trong luong 1". Moi luong la mot API/doc lap.
+The project consists of three benchmarking stages and two independent inference pipelines.
 
 ---
 
-## Tong quan Kien truc
+# Stage 1 - YOLO Benchmark
 
-```mermaid
-flowchart TD
-    A[Raw images + YOLO labels] --> B[Data prep]
-    B --> C[Train YOLO detector]
+Objective:
 
-    C --> D1[Flow 1 Inference API]
-    D1 --> E1[YOLO detect + YOLO class output]
+Select the best YOLO model for traffic sign detection.
 
-    C --> D2[Crop dataset from YOLO labels/pred boxes]
-    D2 --> F2[Train CNN classifier]
-    F2 --> G2[Flow 2 Inference API]
-    G2 --> H2[YOLO detect + CNN class output]
-```
+Models:
 
----
+* YOLOv5n
+* YOLOv8n
+* YOLOv11n
 
-## Luong 1: YOLO detect + YOLO du doan
+Evaluation Metrics:
 
-### 1) Train
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+* FPS
+* Model Size
 
-1. Chuan hoa dataset detection theo format YOLO:
-   - `images/train`, `images/val`, `images/test`
-   - `labels/train`, `labels/val`, `labels/test`
-   - `data.yaml` (names = 52 class).
-2. Train YOLOv8n detector:
-   - Dau vao: anh full scene + bbox + class.
-   - Dau ra model: `artifacts/yolo_detect_cls/best.pt`.
-3. Danh gia:
-   - mAP50-95, Precision, Recall, FPS, model size.
+Output:
 
-### 2) Inference
-
-1. Input anh/video frame.
-2. YOLO predict -> tra ve danh sach object:
-   - bbox `(x1,y1,x2,y2)`
-   - `class_id_yolo`
-   - `class_name_yolo`
-   - `confidence_yolo`
-3. Render ket qua truc tiep tu YOLO.
-
-### 3) Output contract (Flow 1)
-
-```json
-{
-  "flow": "flow1_yolo_yolo",
-  "detections": [
-    {
-      "bbox": [100, 120, 180, 210],
-      "class_id": 7,
-      "class_name": "cam_re_trai",
-      "confidence": 0.92,
-      "source": "yolo"
-    }
-  ]
-}
-```
+Best YOLO model
 
 ---
 
-## Luong 2: YOLO detect + CNN du doan
+# Stage 2 - CNN Benchmark
 
-### 1) Train
+Objective:
 
-1. Tai su dung detector YOLO (co the dung model tu Luong 1 hoac train rieng detector).
-2. Tao du lieu cho CNN:
-   - Crop tung bien bao tu anh theo bbox (uu tien bbox ground-truth de train CNN).
-   - Luu theo cau truc classification:
-     - `crops/train/<class_name>/*.jpg`
-     - `crops/val/<class_name>/*.jpg`
-     - `crops/test/<class_name>/*.jpg`
-3. Train CNN classifier (ResNet/EfficientNet):
-   - Dau vao: crop image.
-   - Dau ra model: `artifacts/cnn_classifier/best.pth`.
-4. Danh gia classifier:
-   - Accuracy, F1-macro, confusion matrix, inference latency.
+Select the best CNN classifier.
 
-### 2) Inference
+Models:
 
-1. Input anh/video frame.
-2. YOLO detector tra bbox (chi dung cho localize object).
-3. Cat tung crop theo bbox.
-4. Chuan hoa crop -> dua vao CNN.
-5. CNN predict class cuoi:
-   - `class_id_cnn`, `class_name_cnn`, `confidence_cnn`.
-6. Tra ket qua bbox tu YOLO + nhan tu CNN.
+* ResNet50
+* EfficientNet-B0
 
-### 3) Output contract (Flow 2)
+Evaluation Metrics:
 
-```json
-{
-  "flow": "flow2_yolo_cnn",
-  "detections": [
-    {
-      "bbox": [100, 120, 180, 210],
-      "detector_confidence": 0.95,
-      "class_id": 7,
-      "class_name": "cam_re_trai",
-      "confidence": 0.89,
-      "source": {
-        "bbox": "yolo",
-        "class": "cnn"
-      }
-    }
-  ]
-}
-```
+* Accuracy
+* Precision
+* Recall
+* F1-score
+* Confusion Matrix
+
+Output:
+
+Best CNN model
 
 ---
 
-## So sanh dung nghia (de tranh code sai)
+# Stage 3 - Pipeline Benchmark
 
-- Flow 1:
-  - BBox: YOLO
-  - Class: YOLO
-  - Ket qua cuoi: class tu YOLO
-- Flow 2:
-  - BBox: YOLO
-  - Class: CNN
-  - Ket qua cuoi: class tu CNN
+Compare:
 
-> Dieu cam ky: khong goi Flow 2 la "YOLO classify". Trong Flow 2, YOLO khong ra quyet dinh class cuoi.
+Pipeline 1
+
+YOLO End-to-End
+
+vs
+
+Pipeline 2
+
+YOLO + CNN
+
+Evaluation Metrics:
+
+* Detection Performance
+* Classification Performance
+* FPS
+* Latency
+* Model Size
 
 ---
 
-## De xuat cau truc thu muc implement
+# Data Preparation Flow
 
-```text
+Raw Dataset
+
+↓
+
+YOLO Annotation Verification
+
+↓
+
+YOLO Detection Dataset
+
+↓
+
+Train YOLO Models
+
+↓
+
+Crop Bounding Boxes
+
+↓
+
+Classification Dataset
+
+↓
+
+Train CNN Models
+
+---
+
+# Pipeline 1
+
+YOLO End-to-End
+
+Image
+
+↓
+
+YOLO
+
+↓
+
+Bounding Box
+
+*
+
+Class
+
+↓
+
+Output
+
+Responsibilities:
+
+* Detection: YOLO
+* Classification: YOLO
+
+---
+
+# Pipeline 2
+
+YOLO + CNN Hybrid
+
+Image
+
+↓
+
+YOLO Detector
+
+↓
+
+Bounding Box
+
+↓
+
+Crop Image
+
+↓
+
+CNN Classifier
+
+↓
+
+Class
+
+↓
+
+Output
+
+Responsibilities:
+
+* Detection: YOLO
+* Classification: CNN
+
+---
+
+# Folder Structure
+
 src/
-  build_crops/
-    build_crops_for_cnn.py
-  train/
-    train_yolo.py
-    train_cnn.py
-  infer/
-    infer_flow1_yolo_yolo.py
-    infer_flow2_yolo_cnn.py
-  pipelines/
-    flow1_pipeline.py
-    flow2_pipeline.py
-  common/
-    labels.py
-    image_ops.py
-    postprocess.py
-artifacts/
-  yolo_detect_cls/
-  cnn_classifier/
-configs/
-  yolo.yaml
-  cnn.yaml
-  infer.yaml
-```
+
+├── build_crops/
+
+├── train/
+
+│ ├── train_yolo.py
+
+│ └── train_cnn.py
+
+├── infer/
+
+│ ├── infer_flow1.py
+
+│ └── infer_flow2.py
+
+├── pipelines/
+
+│ ├── flow1_pipeline.py
+
+│ └── flow2_pipeline.py
+
+├── web/
+
+└── common/
 
 ---
 
-## API/CLI de chay dung 2 luong
+# API Endpoints
 
-- Flow 1:
-  - `python -m src.infer.infer_flow1_yolo_yolo --input path_or_video`
-- Flow 2:
-  - `python -m src.infer.infer_flow2_yolo_cnn --input path_or_video`
+POST /predict/flow1
 
-Khuyen nghi:
-- Tach endpoint:
-  - `POST /predict/flow1`
-  - `POST /predict/flow2`
-- Moi endpoint log ro `flow_id` de tranh nham ket qua benchmark.
+YOLO End-to-End
+
+POST /predict/flow2
+
+YOLO + CNN
+
+POST /benchmark
+
+Compare model outputs
 
 ---
 
-## Checklist truoc khi bat dau code/train
+# Development Checklist
 
-- [ ] Co `class_map` dung chung cho YOLO va CNN (id <-> ten class).
-- [ ] Co script crop dataset cho CNN va da verify class distribution.
-- [ ] Co 2 file infer rieng, khong dung chung mot ham "predict class" cho ca 2 luong.
-- [ ] Co benchmark script xuat ket qua theo `flow1` va `flow2` tach biet.
-- [ ] Bao cao cuoi co bang so sanh dung cap:
-      `YOLO end-to-end` vs `YOLO+CNN hybrid`.
+[ ] Verify YOLO dataset
+
+[ ] Build crop dataset
+
+[ ] Train YOLOv5n
+
+[ ] Train YOLOv8n
+
+[ ] Train YOLOv11n
+
+[ ] Evaluate YOLO models
+
+[ ] Train ResNet50
+
+[ ] Train EfficientNet-B0
+
+[ ] Evaluate CNN models
+
+[ ] Select best models
+
+[ ] Implement Flow 1
+
+[ ] Implement Flow 2
+
+[ ] Build Web Benchmark System
+
+[ ] Final Evaluation Report
