@@ -1,0 +1,19 @@
+run_id: yolov5n_e100_sz640_lr0.005_b16_mos1
+experiment: exp1_model_compare
+pipeline: pipeline1
+mode: production
+reused: false
+hyperparams:
+  epochs: 100
+  imgsz: 640
+  lr: 0.005
+  batch: 16
+  mosaic: 1
+  patience: 30
+  seed: 42
+  workers: 4
+  model: yolov5n
+device: null
+started_at: '2026-06-15T18:03:46+00:00'
+finished_at: '2026-06-15T18:37:20+00:00'
+status: completed

@@ -1,0 +1,123 @@
+* Với Pipeline 2 (YOLO + CNN Hybrid)
+
+  * Sử dụng mô hình YOLO tốt nhất được chọn từ Pipeline 1.
+  * Tham số YOLO được cố định theo cấu hình tối ưu tìm được ở Stage 1.
+
+Ví dụ:
+
+```
+- YOLOv8n
+- Epochs = 100
+- Image Size = 640
+- Learning Rate = 0.005
+- Batch Size = 16
+- Mosaic = 1
+```
+
+---
+
+# Thực nghiệm 1: So sánh mô hình CNN
+
+Train:
+
+```
+* ResNet50
+* EfficientNet-B0
+```
+
+Tham số cố định:
+
+```
+* Epochs = 50
+* Batch Size = 32
+* Learning Rate = 0.001
+```
+
+Đánh giá:
+
+```
+* Accuracy
+* Precision
+* Recall
+* F1-score
+* Confusion Matrix
+* Inference Time
+* Model Size
+```
+
+Kết quả:
+
+```
+* Chọn mô hình CNN tốt nhất.
+```
+
+---
+
+# Thực nghiệm 2: Ảnh hưởng của Learning Rate
+
+Sử dụng mô hình CNN tốt nhất.
+
+Giữ nguyên:
+
+```
+* Epochs = 50
+* Batch Size = 32
+```
+
+Train với:
+
+```
+* Learning Rate = 0.0001
+* Learning Rate = 0.001
+* Learning Rate = 0.01
+```
+
+Đánh giá:
+
+```
+* Accuracy
+* Precision
+* Recall
+* F1-score
+* Training Loss
+* Validation Loss
+```
+
+---
+
+# Thực nghiệm 3: Ảnh hưởng của Transfer Learning
+
+Sử dụng mô hình CNN tốt nhất.
+
+## Case 1
+
+Frozen Backbone
+
+```
+* Chỉ train Classification Head
+```
+
+## Case 2
+
+Fine-Tuning
+
+```
+* Train toàn bộ mô hình
+```
+
+Đánh giá:
+
+```
+* Accuracy
+* Precision
+* Recall
+* F1-score
+* Inference Time
+```
+
+Kết quả:
+
+```
+* Chọn cấu hình CNN tối ưu.
+```
+```

@@ -1,0 +1,157 @@
+* Với Pipeline 1 (YOLO End-to-End): thực hiện trên cả 3 mô hình:
+
+  * YOLOv5n
+
+  * YOLOv8n
+
+  * YOLOv11n
+
+  * Tham số cố định (Baseline):
+
+    * Epochs = 100
+    * Image Size = 640
+    * Learning Rate = 0.005
+    * Batch Size = 16
+
+---
+
+# Thực nghiệm 1: So sánh mô hình YOLO
+
+## Case 1
+
+Mosaic = 0
+
+Train:
+
+```
+* YOLOv5n
+* YOLOv8n
+* YOLOv11n
+```
+
+## Case 2
+
+Mosaic = 1
+
+Train:
+
+```
+* YOLOv5n
+* YOLOv8n
+* YOLOv11n
+```
+
+Đánh giá:
+
+```
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+* FPS
+* Inference Time
+* Model Size
+```
+
+Kết quả:
+
+```
+* Chọn mô hình YOLO tốt nhất.
+```
+
+---
+
+# Thực nghiệm 2: Ảnh hưởng của Image Size
+
+Sử dụng mô hình YOLO tốt nhất từ Thực nghiệm 1.
+
+Giữ nguyên:
+
+```
+* Learning Rate = 0.005
+* Batch Size = 16
+* Mosaic = 1
+```
+
+Train với:
+
+```
+* Image Size = 416
+* Image Size = 640
+* Image Size = 800
+```
+
+Đánh giá:
+
+```
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+* FPS
+* Inference Time
+```
+
+---
+
+# Thực nghiệm 3: Ảnh hưởng của Learning Rate
+
+Sử dụng mô hình YOLO tốt nhất từ Thực nghiệm 1.
+
+Giữ nguyên:
+
+```
+* Image Size = 640
+* Batch Size = 16
+* Mosaic = 1
+```
+
+Train với:
+
+```
+* Learning Rate = 0.001
+* Learning Rate = 0.005
+* Learning Rate = 0.01
+```
+
+Đánh giá:
+
+```
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+```
+
+---
+
+# Thực nghiệm 4: Ảnh hưởng của Batch Size
+
+Sử dụng mô hình YOLO tốt nhất từ Thực nghiệm 1.
+
+Giữ nguyên:
+
+```
+* Image Size = 640
+* Learning Rate = 0.005
+* Mosaic = 1
+```
+
+Train với:
+
+```
+* Batch Size = 8
+* Batch Size = 16
+* Batch Size = 32
+```
+
+Đánh giá:
+
+```
+* Precision
+* Recall
+* mAP@0.5
+* mAP@0.5:0.95
+* Training Time
+* GPU Memory Usage
+```

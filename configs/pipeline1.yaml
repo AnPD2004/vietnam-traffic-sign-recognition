@@ -1,0 +1,59 @@
+data: data/vn-traffic-signs/data.yaml
+
+output: artifacts/pipeline1
+test_output: artifacts/pipeline1_test
+
+baseline:
+  epochs: 100
+  imgsz: 640
+  lr: 0.005
+  batch: 16
+  mosaic: 1
+  patience: 30
+  seed: 42
+  workers: 4
+
+test:
+  epochs: 1
+  patience: 1
+  workers: 0
+  batch: 8
+
+models:
+  - yolov5n
+  - yolov8n
+  - yolov11n
+
+model_weights:
+  yolov5n: yolov5nu.pt
+  yolov8n: yolov8n.pt
+  yolov11n: yolo11n.pt
+
+experiments:
+  exp1_model_compare:
+    grid:
+      mosaic: [0, 1]
+    metric: map50_95
+  exp2_imgsz:
+    grid:
+      imgsz: [416, 640, 800]
+    fixed:
+      lr: 0.005
+      batch: 16
+    metric: map50_95
+  exp3_lr:
+    grid:
+      lr: [0.001, 0.005, 0.01]
+    fixed:
+      batch: 16
+    metric: map50_95
+  exp4_batch:
+    grid:
+      batch: [8, 16, 32]
+    metric: map50_95
+
+experiment_order:
+  - exp1_model_compare
+  - exp2_imgsz
+  - exp3_lr
+  - exp4_batch

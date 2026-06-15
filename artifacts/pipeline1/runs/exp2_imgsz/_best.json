@@ -1,0 +1,19 @@
+{
+  "experiment": "exp2_imgsz",
+  "run_id": "yolov8n_e100_sz800_lr0.005_b16_mos1",
+  "weights": "artifacts/pipeline1/runs/exp2_imgsz/yolov8n_e100_sz800_lr0.005_b16_mos1/yolov8n_e100_sz800_lr0.005_b16_mos1.pt",
+  "metric_used": "map50_95",
+  "metric_value": 0.781393,
+  "hyperparams": {
+    "epochs": 100,
+    "imgsz": 800,
+    "lr": 0.005,
+    "batch": 16,
+    "mosaic": 1,
+    "patience": 30,
+    "seed": 42,
+    "workers": 4,
+    "model": "yolov8n"
+  },
+  "reused": false
+}

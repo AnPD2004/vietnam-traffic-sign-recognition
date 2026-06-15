@@ -1,0 +1,19 @@
+run_id: yolov8n_e100_sz800_lr0.001_b16_mos1
+experiment: exp4_batch
+pipeline: pipeline1
+mode: production
+reused: true
+hyperparams:
+  epochs: 100
+  imgsz: 800
+  lr: 0.001
+  batch: 16
+  mosaic: 1
+  patience: 30
+  seed: 42
+  workers: 4
+  model: yolov8n
+device: null
+started_at: '2026-06-15T21:39:32+00:00'
+finished_at: '2026-06-15T21:39:32+00:00'
+status: completed

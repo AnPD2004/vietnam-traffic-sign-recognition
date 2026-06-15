@@ -8,4 +8,5 @@ dependencies = [
     "torch>=2.12.0",
     "torchvision>=0.27.0",
     "ultralytics>=8.4.37",
+    "pyyaml>=6.0",
 ]
