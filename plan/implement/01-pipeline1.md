@@ -28,6 +28,29 @@ Models: `yolov5n`, `yolov8n`, `yolov11n`
 
 ---
 
+## Cach dem run / reuse policy
+
+Pipeline 1 co **15 benchmark cases** trong experiment matrix, nhung chi co
+**12 unique training/evaluation runs**.
+
+Ly do: `run_id` duoc tao tu toan bo hyperparameter cua cau hinh. Neu mot
+experiment sau co baseline value trung voi best config cua experiment truoc,
+case do se co cung `run_id`, nen orchestrator reuse metrics da co thay vi
+train/evaluate lai dung cung mot cau hinh.
+
+| Experiment | Benchmark cases | New unique runs | Reused baseline case |
+|------------|-----------------|-----------------|----------------------|
+| Exp1 model compare | 6 | 6 | 0 |
+| Exp2 image size | 3 | 2 | 1 (`imgsz` = previous best) |
+| Exp3 learning rate | 3 | 2 | 1 (`lr` = previous best) |
+| Exp4 batch size | 3 | 2 | 1 (`batch` = previous best) |
+| **Total** | **15 cases** | **12 runs** | **3 reused** |
+
+Khi viet report, ghi theo cach: **15 benchmark cases, 12 unique
+trained/evaluated configurations, 3 reused baseline cases**.
+
+---
+
 ## Thực nghiệm 1 — So sánh mô hình YOLO
 
 ### Mục tiêu
@@ -40,7 +63,7 @@ Chọn architecture YOLO tốt nhất.
 | 1 | 0 | v5n, v8n, v11n |
 | 2 | 1 | v5n, v8n, v11n |
 
-**6 runs** → output: `artifacts/pipeline1/runs/exp1_model_compare/`
+**6 unique runs** → output: `artifacts/pipeline1/runs/exp1_model_compare/`
 
 ### Naming convention
 
@@ -83,7 +106,10 @@ Best model + best mosaic từ Exp1.
 `lr=0.005, batch=16, mosaic={best_mosaic}`
 
 ### Grid
-`imgsz ∈ {416, 640, 800}` — **3 runs**
+`imgsz ∈ {416, 640, 800}` — **3 benchmark cases**
+
+Mot case trung voi image size cua best config tu Exp1, nen stage nay thuong
+chi train/evaluate **2 unique runs moi** va **reuse 1 baseline case**.
 
 ### Output
 `artifacts/pipeline1/runs/exp2_imgsz/`
@@ -105,7 +131,10 @@ Best model, mosaic, imgsz từ Exp1+2.
 `imgsz={best_imgsz}, batch=16, mosaic={best_mosaic}`
 
 ### Grid
-`lr ∈ {0.001, 0.005, 0.01}` — **3 runs**
+`lr ∈ {0.001, 0.005, 0.01}` — **3 benchmark cases**
+
+Mot case trung voi learning rate cua best config tu Exp2, nen stage nay thuong
+chi train/evaluate **2 unique runs moi** va **reuse 1 baseline case**.
 
 ### Metrics
 Precision, Recall, mAP@0.5, mAP@0.5:0.95
@@ -121,7 +150,10 @@ Best model, mosaic, imgsz, lr từ Exp1+2+3.
 `imgsz={best_imgsz}, lr={best_lr}, mosaic={best_mosaic}`
 
 ### Grid
-`batch ∈ {8, 16, 32}` — **3 runs**
+`batch ∈ {8, 16, 32}` — **3 benchmark cases**
+
+Mot case trung voi batch size cua best config tu Exp3, nen stage nay thuong
+chi train/evaluate **2 unique runs moi** va **reuse 1 baseline case**.
 
 ### Metrics bổ sung
 Training Time, GPU Memory Usage (peak VRAM nếu có CUDA)
@@ -133,7 +165,7 @@ Training Time, GPU Memory Usage (peak VRAM nếu có CUDA)
 ```
 artifacts/pipeline1/
 ├── registry.json
-├── runs/ ... (15 run folders, mỗi folder 1 file .pt đặt tên theo params)
+├── runs/ ... (12 unique trained/evaluated configs + reused case records)
 ├── best/
 │   ├── yolov8n_e100_sz640_lr0.005_b16_mos1.pt   # copy winner Exp4
 │   └── best.json
@@ -236,7 +268,7 @@ def select_best_run(runs: list[dict], metric: str) -> dict: ...
 | `train_yolo.py` không có `lr`, `mosaic` | Thêm vào train wrapper |
 | Chỉ train được YOLOv8n | Hỗ trợ v5n, v11n qua model map |
 | Output rải rác `runs/detect/` | Chuẩn hóa `artifacts/pipeline1/` |
-| Không có orchestrator | `run.py` điều phối 15 runs |
+| Không có orchestrator | `run.py` điều phối 15 benchmark cases / 12 unique runs |
 | Không chọn best tự động | `select_best.py` |
 | LR design = 0.005, README = 0.01 | Dùng **0.005** theo design |
 

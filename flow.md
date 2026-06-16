@@ -23,7 +23,7 @@ Select the best YOLO model for traffic sign detection.
 * Epochs = 100
 * Batch Size = 16
 * Image Size = 640
-* Learning Rate = 0.01
+* Learning Rate = 0.005
 * Mosaic = 1
 
 ## Evaluation Metrics
@@ -85,6 +85,12 @@ Analyze the impact of training hyperparameters on YOLO performance.
 ## Output
 
 Optimal YOLO configuration
+
+Run counting:
+
+* 15 benchmark cases
+* 12 unique training/evaluation runs
+* 3 reused baseline cases
 
 ---
 
@@ -153,6 +159,12 @@ Analyze the impact of CNN training strategies.
 ## Output
 
 Optimal CNN configuration
+
+Run counting:
+
+* 7 benchmark cases
+* 5 unique training/evaluation runs
+* 2 reused baseline cases
 
 ---
 
@@ -333,3 +345,35 @@ Compare model outputs
 ---
 
 # Development Checklist
+
+## Completed
+
+- [x] Dataset config exists: `data/vn-traffic-signs/data.yaml`
+- [x] Class mapping exists: `data/vn-traffic-signs/classes.txt`
+- [x] Pipeline 1 config exists: `configs/pipeline1.yaml`
+- [x] Pipeline 1 refactor module exists: `src/pipeline1/`
+- [x] Pipeline 1 CLI exists: `python -m src.pipeline1`
+- [x] Pipeline 1 supports `--dry-run`, `--test`, `--force`, `--experiment`, `--run-id`, `--list-runs`
+- [x] Pipeline 1 YOLO training wrapper supports model map, `lr0`, `mosaic`, named run artifacts
+- [x] Pipeline 1 evaluation collects precision, recall, mAP@0.5, mAP@0.5:0.95, FPS, inference time, model size
+- [x] Pipeline 1 best-run selection uses `mAP@0.5:0.95`, then `mAP@0.5`, then FPS
+- [x] Pipeline 1 registry/report metadata exists under `artifacts/pipeline1/`
+- [x] Pipeline 1 benchmark metadata covers 15 benchmark cases / 12 unique runs / 3 reused baseline cases
+- [x] Crop builder script exists: `src/build_crops/build_crops_for_cnn.py`
+- [x] Legacy CNN training script exists: `src/train/train_cnn.py`
+- [x] Flow 1 inference class exists: `src/pipelines/flow1_pipeline.py`
+- [x] Flow 2 inference class exists: `src/pipelines/flow2_pipeline.py`
+
+## Pending / Partial
+
+- [ ] Pipeline 1 weight files (`*.pt`) are not present in the workspace even though `best.json` points to them
+- [ ] Classification crop dataset is not present at `data/vn-traffic-signs/crops`
+- [ ] Pipeline 2 config is not implemented: `configs/pipeline2.yaml`
+- [ ] Pipeline 2 refactor module is not implemented: `src/pipeline2/`
+- [ ] Pipeline 2 orchestrator is not implemented: `python -m src.pipeline2`
+- [ ] CNN model config still needs migration from `resnet18` to `resnet50`
+- [ ] CNN benchmark matrix is not implemented as 7 benchmark cases / 5 unique runs / 2 reused baseline cases
+- [ ] Pipeline 2 best artifact layout is not implemented under `artifacts/pipeline2/`
+- [ ] Inference CLI folder is not implemented: `src/infer/`
+- [ ] Stage 3 benchmark comparing Pipeline 1 vs Pipeline 2 is not implemented
+- [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`, `/benchmark`

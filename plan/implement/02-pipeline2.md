@@ -88,10 +88,32 @@ Models: `resnet50`, `efficientnet_b0`
 
 ---
 
+## Cach dem run / reuse policy
+
+Pipeline 2 co **7 benchmark cases** trong experiment matrix, nhung thuong chi
+co **5 unique training/evaluation runs**.
+
+Ly do: `run_id` cua CNN duoc tao tu model, epochs, input size, learning rate,
+batch size va transfer strategy. Neu mot experiment sau co baseline value
+trung voi best config cua experiment truoc, case do se reuse metrics da co
+thay vi train/evaluate lai dung cung mot CNN configuration.
+
+| Experiment | Benchmark cases | New unique runs | Reused baseline case |
+|------------|-----------------|-----------------|----------------------|
+| Exp1 CNN model compare | 2 | 2 | 0 |
+| Exp2 learning rate | 3 | 2 | 1 (`lr` = previous best) |
+| Exp3 transfer strategy | 2 | 1 | 1 (`strategy` = previous best) |
+| **Total** | **7 cases** | **5 runs** | **2 reused** |
+
+Khi viet report, ghi theo cach: **7 benchmark cases, 5 unique
+trained/evaluated configurations, 2 reused baseline cases**.
+
+---
+
 ## Thực nghiệm 1 — So sánh mô hình CNN
 
 ### Grid
-`model ∈ {resnet50, efficientnet_b0}` — **2 runs**
+`model ∈ {resnet50, efficientnet_b0}` — **2 unique runs**
 
 ### Metrics
 - Accuracy, Precision, Recall, F1-macro
@@ -113,7 +135,10 @@ Best CNN architecture từ Exp1.
 `epochs=50, batch=32`
 
 ### Grid
-`lr ∈ {0.0001, 0.001, 0.01}` — **3 runs**
+`lr ∈ {0.0001, 0.001, 0.01}` — **3 benchmark cases**
+
+Mot case trung voi learning rate cua best config tu Exp1, nen stage nay thuong
+chi train/evaluate **2 unique runs moi** va **reuse 1 baseline case**.
 
 ### Metrics bổ sung
 Training Loss, Validation Loss (per epoch trong history)
@@ -132,7 +157,10 @@ Best architecture + best lr từ Exp1+2.
 | 1 | `frozen` | Freeze backbone, chỉ train head |
 | 2 | `finetune` | Train toàn bộ model |
 
-**2 runs**
+**2 benchmark cases**
+
+Mot case trung voi transfer strategy cua best config tu Exp2, nen stage nay
+thuong chi train/evaluate **1 unique run moi** va **reuse 1 baseline case**.
 
 ### Implement frozen backbone
 
@@ -156,7 +184,7 @@ Optimizer chỉ nhận `filter(lambda p: p.requires_grad, model.parameters())`.
 ```
 artifacts/pipeline2/
 ├── registry.json
-├── runs/ ... (7 run folders)
+├── runs/ ... (5 unique trained/evaluated configs + reused case records)
 ├── best/
 │   ├── efficientnet_b0_e50_isz224_lr0.001_b32_ft.pth
 │   ├── yolo_ref.json
