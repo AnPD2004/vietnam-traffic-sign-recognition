@@ -1,0 +1,20 @@
+{
+  "experiment": "exp1_model_compare",
+  "run_id": "efficientnet_b0_e50_isz224_lr0.001_b32_ft",
+  "weights": "artifacts/pipeline2/runs/exp1_model_compare/efficientnet_b0_e50_isz224_lr0.001_b32_ft/efficientnet_b0_e50_isz224_lr0.001_b32_ft.pth",
+  "metric_used": "f1_macro",
+  "metric_value": 0.989254,
+  "hyperparams": {
+    "epochs": 50,
+    "input_size": 224,
+    "lr": 0.001,
+    "batch": 32,
+    "strategy": "finetune",
+    "patience": 10,
+    "seed": 42,
+    "weight_decay": 0.0001,
+    "workers": 4,
+    "model": "efficientnet_b0"
+  },
+  "reused": false
+}
