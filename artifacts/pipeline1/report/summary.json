@@ -1,8 +1,12 @@
 {
-  "pipeline": "pipeline1",
   "mode": "production",
-  "updated_at": "2026-06-16T00:03:22+00:00",
-  "total_runs": 12,
+  "best_overall": "yolov8n_e100_sz800_lr0.001_b32_mos1",
+  "best_per_experiment": {
+    "exp1_model_compare": "yolov8n_e100_sz640_lr0.005_b16_mos1",
+    "exp2_imgsz": "yolov8n_e100_sz800_lr0.005_b16_mos1",
+    "exp3_lr": "yolov8n_e100_sz800_lr0.001_b16_mos1",
+    "exp4_batch": "yolov8n_e100_sz800_lr0.001_b32_mos1"
+  },
   "runs": {
     "yolov5n_e100_sz640_lr0.005_b16_mos0": {
       "experiment": "exp1_model_compare",
@@ -220,12 +224,5 @@
       },
       "updated_at": "2026-06-16T00:03:22+00:00"
     }
-  },
-  "best_per_experiment": {
-    "exp1_model_compare": "yolov8n_e100_sz640_lr0.005_b16_mos1",
-    "exp2_imgsz": "yolov8n_e100_sz800_lr0.005_b16_mos1",
-    "exp3_lr": "yolov8n_e100_sz800_lr0.001_b16_mos1",
-    "exp4_batch": "yolov8n_e100_sz800_lr0.001_b32_mos1"
-  },
-  "best_overall": "yolov8n_e100_sz800_lr0.001_b32_mos1"
+  }
 }

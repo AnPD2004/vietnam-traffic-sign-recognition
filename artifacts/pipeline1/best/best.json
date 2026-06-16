@@ -1,0 +1,27 @@
+{
+  "pipeline": "pipeline1",
+  "mode": "production",
+  "run_id": "yolov8n_e100_sz800_lr0.001_b32_mos1",
+  "weights": "artifacts/pipeline1/best/yolov8n_e100_sz800_lr0.001_b32_mos1.pt",
+  "source_run_dir": "artifacts/pipeline1/runs/exp4_batch/yolov8n_e100_sz800_lr0.001_b32_mos1",
+  "hyperparams": {
+    "epochs": 100,
+    "imgsz": 800,
+    "lr": 0.001,
+    "batch": 32,
+    "mosaic": 1,
+    "patience": 30,
+    "seed": 42,
+    "workers": 4,
+    "model": "yolov8n"
+  },
+  "metrics": {
+    "precision": 0.94736,
+    "recall": 0.973183,
+    "map50": 0.987166,
+    "map50_95": 0.783267,
+    "model_size_mb": 6.0149,
+    "fps": 126.1954,
+    "inference_ms": 7.9242
+  }
+}
