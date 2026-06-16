@@ -1,0 +1,53 @@
+data:
+  yolo_yaml: data/vn-traffic-signs/data.yaml
+  crops_dir: data/vn-traffic-signs/crops
+  classes: data/vn-traffic-signs/classes.txt
+
+yolo:
+  source: artifacts/pipeline1/best/best.json
+
+output: artifacts/pipeline2
+test_output: artifacts/pipeline2_test
+
+baseline:
+  epochs: 50
+  batch: 32
+  lr: 0.001
+  input_size: 224
+  strategy: finetune
+  patience: 10
+  seed: 42
+  weight_decay: 0.0001
+  workers: 4
+
+test:
+  epochs: 1
+  patience: 1
+  workers: 0
+  batch: 8
+
+crops:
+  padding: 0.05
+
+models:
+  - resnet50
+  - efficientnet_b0
+
+experiments:
+  exp1_model_compare:
+    metric: f1_macro
+  exp2_lr:
+    grid:
+      lr: [0.0001, 0.001, 0.01]
+    fixed:
+      batch: 32
+    metric: f1_macro
+  exp3_transfer:
+    grid:
+      strategy: [frozen, finetune]
+    metric: f1_macro
+
+experiment_order:
+  - exp1_model_compare
+  - exp2_lr
+  - exp3_transfer

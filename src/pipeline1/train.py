@@ -9,7 +9,7 @@ from typing import Any
 import yaml
 
 from src.common.memory import purge_ultralytics_run_dir, release_runtime_memory
-from src.train.train_yolo import _prepare_data_yaml
+from src.common.yolo_data import prepare_data_yaml
 
 
 def resolve_model_checkpoint(cfg: dict[str, Any], model_name: str) -> str:
@@ -31,7 +31,7 @@ def train_yolo_run(
     from ultralytics import YOLO
 
     run_dir.mkdir(parents=True, exist_ok=True)
-    prepared_data = _prepare_data_yaml(data_yaml.resolve())
+    prepared_data = prepare_data_yaml(data_yaml.resolve())
     ultra_dir: Path | None = None
     model = None
 

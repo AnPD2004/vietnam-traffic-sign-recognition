@@ -1,61 +1,7 @@
 from __future__ import annotations
 
-import argparse
 import tempfile
 from pathlib import Path
-
-
-def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="Train YOLO for Flow 1 (YOLO detect + YOLO predict)."
-    )
-    parser.add_argument(
-        "--data",
-        required=True,
-        help="Path to YOLO data.yaml.",
-    )
-    parser.add_argument(
-        "--model",
-        default="yolov8n.pt",
-        help="Base model checkpoint (default: yolov8n.pt).",
-    )
-    parser.add_argument("--epochs", type=int, default=100, help="Training epochs.")
-    parser.add_argument("--imgsz", type=int, default=640, help="Image size.")
-    parser.add_argument("--batch", type=int, default=16, help="Batch size.")
-    parser.add_argument(
-        "--device",
-        default=None,
-        help='Device, e.g. "0", "0,1", "cpu" (default: auto).',
-    )
-    parser.add_argument(
-        "--project",
-        default="artifacts/yolo_detect_cls",
-        help="Output project directory.",
-    )
-    parser.add_argument(
-        "--name",
-        default="flow1_train",
-        help="Run name under project directory.",
-    )
-    parser.add_argument(
-        "--patience",
-        type=int,
-        default=30,
-        help="Early stopping patience.",
-    )
-    parser.add_argument("--workers", type=int, default=8, help="Dataloader workers.")
-    parser.add_argument(
-        "--seed",
-        type=int,
-        default=42,
-        help="Random seed.",
-    )
-    parser.add_argument(
-        "--val",
-        action="store_true",
-        help="Run validation after training.",
-    )
-    return parser.parse_args()
 
 
 def _resolve_split_list(
@@ -96,7 +42,8 @@ def _resolve_split_list(
     return resolved_file
 
 
-def _prepare_data_yaml(data_path: Path) -> Path:
+def prepare_data_yaml(data_path: Path) -> Path:
+    """Resolve split .txt paths in a YOLO data.yaml for Ultralytics training/val."""
     import yaml
 
     data_cfg = yaml.safe_load(data_path.read_text(encoding="utf-8"))
@@ -152,35 +99,3 @@ def _prepare_data_yaml(data_path: Path) -> Path:
         encoding="utf-8",
     )
     return resolved_yaml
-
-
-def main() -> None:
-    args = parse_args()
-    from ultralytics import YOLO
-
-    data_path = Path(args.data)
-    if not data_path.exists():
-        raise FileNotFoundError(f"data.yaml not found: {data_path}")
-    prepared_data_path = _prepare_data_yaml(data_path.resolve())
-
-    model = YOLO(args.model)
-    model.train(
-        data=str(prepared_data_path),
-        epochs=args.epochs,
-        imgsz=args.imgsz,
-        batch=args.batch,
-        device=args.device,
-        project=args.project,
-        name=args.name,
-        patience=args.patience,
-        workers=args.workers,
-        seed=args.seed,
-    )
-
-    if args.val:
-        model.val(data=str(prepared_data_path), imgsz=args.imgsz, device=args.device)
-
-
-if __name__ == "__main__":
-    main()
-

@@ -304,11 +304,9 @@ src/
 
 ├── build_crops/
 
-├── train/
+├── pipeline1/
 
-│ ├── train_yolo.py
-
-│ └── train_cnn.py
+├── pipeline2/
 
 ├── infer/
 
@@ -360,20 +358,18 @@ Compare model outputs
 - [x] Pipeline 1 registry/report metadata exists under `artifacts/pipeline1/`
 - [x] Pipeline 1 benchmark metadata covers 15 benchmark cases / 12 unique runs / 3 reused baseline cases
 - [x] Crop builder script exists: `src/build_crops/build_crops_for_cnn.py`
-- [x] Legacy CNN training script exists: `src/train/train_cnn.py`
 - [x] Flow 1 inference class exists: `src/pipelines/flow1_pipeline.py`
 - [x] Flow 2 inference class exists: `src/pipelines/flow2_pipeline.py`
+- [x] Pipeline 2 config exists: `configs/pipeline2.yaml`
+- [x] Pipeline 2 refactor module exists: `src/pipeline2/`
+- [x] Pipeline 2 orchestrator exists: `python -m src.pipeline2`
+- [x] CNN models use `resnet50` + `efficientnet_b0` (no `resnet18`)
 
 ## Pending / Partial
 
 - [ ] Pipeline 1 weight files (`*.pt`) are not present in the workspace even though `best.json` points to them
 - [ ] Classification crop dataset is not present at `data/vn-traffic-signs/crops`
-- [ ] Pipeline 2 config is not implemented: `configs/pipeline2.yaml`
-- [ ] Pipeline 2 refactor module is not implemented: `src/pipeline2/`
-- [ ] Pipeline 2 orchestrator is not implemented: `python -m src.pipeline2`
-- [ ] CNN model config still needs migration from `resnet18` to `resnet50`
-- [ ] CNN benchmark matrix is not implemented as 7 benchmark cases / 5 unique runs / 2 reused baseline cases
-- [ ] Pipeline 2 best artifact layout is not implemented under `artifacts/pipeline2/`
+- [ ] Pipeline 2 benchmark has not been run yet under `artifacts/pipeline2/`
 - [ ] Inference CLI folder is not implemented: `src/infer/`
 - [ ] Stage 3 benchmark comparing Pipeline 1 vs Pipeline 2 is not implemented
 - [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`, `/benchmark`

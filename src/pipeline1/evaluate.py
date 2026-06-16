@@ -5,7 +5,7 @@ from pathlib import Path
 from typing import Any
 
 from src.common.memory import release_runtime_memory
-from src.train.train_yolo import _prepare_data_yaml
+from src.common.yolo_data import prepare_data_yaml
 
 
 def evaluate_yolo_run(
@@ -18,7 +18,7 @@ def evaluate_yolo_run(
 ) -> dict[str, Any]:
     from ultralytics import YOLO
 
-    prepared_data = _prepare_data_yaml(data_yaml.resolve())
+    prepared_data = prepare_data_yaml(data_yaml.resolve())
     model = None
 
     try:

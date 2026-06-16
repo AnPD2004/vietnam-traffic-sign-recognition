@@ -184,17 +184,20 @@ Utilities:
 
 src/
 ├── build_crops/
-├── train/
+├── pipeline1/
+├── pipeline2/
 ├── infer/
 ├── pipelines/
 ├── web/
 └── common/
 
 artifacts/
-├── yolo/
-└── cnn/
+├── pipeline1/
+└── pipeline2/
 
 configs/
+├── pipeline1.yaml
+└── pipeline2.yaml
 
 datasets/
 

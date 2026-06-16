@@ -30,8 +30,8 @@ def build_classifier(
 ) -> nn.Module:
     weights = "DEFAULT" if pretrained else None
 
-    if model_name == "resnet18":
-        model = models.resnet18(weights=weights)
+    if model_name == "resnet50":
+        model = models.resnet50(weights=weights)
         model.fc = nn.Linear(model.fc.in_features, num_classes)
         return model
 
