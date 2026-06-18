@@ -364,12 +364,12 @@ Compare model outputs
 - [x] Pipeline 2 refactor module exists: `src/pipeline2/`
 - [x] Pipeline 2 orchestrator exists: `python -m src.pipeline2`
 - [x] CNN models use `resnet50` + `efficientnet_b0` (no `resnet18`)
+- [x] Pipeline 1 weight files (`*.pt`) present; `artifacts/pipeline1/best/best.json` points to valid weights
+- [x] Classification crop dataset present at `data/vn-traffic-signs/crops`
+- [x] Pipeline 2 benchmark completed under `artifacts/pipeline2/` (registry, runs, report)
 
 ## Pending / Partial
 
-- [ ] Pipeline 1 weight files (`*.pt`) are not present in the workspace even though `best.json` points to them
-- [ ] Classification crop dataset is not present at `data/vn-traffic-signs/crops`
-- [ ] Pipeline 2 benchmark has not been run yet under `artifacts/pipeline2/`
 - [ ] Inference CLI folder is not implemented: `src/infer/`
 - [ ] Stage 3 benchmark comparing Pipeline 1 vs Pipeline 2 is not implemented
 - [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`, `/benchmark`
