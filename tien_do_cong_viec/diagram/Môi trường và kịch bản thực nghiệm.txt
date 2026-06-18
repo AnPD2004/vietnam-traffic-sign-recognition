@@ -1,0 +1,31 @@
+flowchart TB
+
+    A[Dataset]
+
+    B[YOLOv5n<br/>YOLOv8n<br/>YOLOv11n]
+
+    C[ResNet50<br/>EfficientNet-B0]
+
+    D[Best YOLO]
+
+    E[Best CNN]
+
+    F[Pipeline 1<br/>YOLO End-to-End]
+
+    G[Pipeline 2<br/>YOLO + CNN]
+
+    H[So sánh và đánh giá]
+
+    A --> B
+    A --> C
+
+    B --> D
+    C --> E
+
+    D --> F
+
+    D --> G
+    E --> G
+
+    F --> H
+    G --> H
