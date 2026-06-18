@@ -1,0 +1,32 @@
+flowchart LR
+
+    A[Dataset gốc]
+
+    A --> B[Chuẩn hóa dữ liệu]
+
+    B --> C1[Dataset YOLO]
+    B --> C2[Crop biển báo]
+
+    C2 --> C3[Dataset CNN]
+
+    subgraph Pipeline 1
+        D1[YOLO End-to-End]
+    end
+
+    subgraph Pipeline 2
+        D2[YOLO Detector]
+        D3[CNN Classifier]
+        D2 --> D3
+    end
+
+    C1 --> D1
+    C1 --> D2
+    C3 --> D3
+
+    D1 --> E[Inference Pipeline 1]
+    D3 --> F[Inference Pipeline 2]
+
+    E --> G[Benchmark]
+    F --> G
+
+    G --> H[So sánh độ chính xác<br/>tốc độ và khả năng triển khai]

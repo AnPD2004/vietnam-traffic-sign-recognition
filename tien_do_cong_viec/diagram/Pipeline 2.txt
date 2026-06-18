@@ -1,0 +1,22 @@
+flowchart LR
+
+    A[Ảnh đầu vào]
+
+    B[YOLO Detector]
+
+    C[Phát hiện vị trí biển báo<br/>(Bounding Box)]
+
+    D[Cắt vùng ảnh biển báo<br/>(Crop Image)]
+
+    E[CNN Classifier]
+
+    F[Phân loại biển báo<br/>(Class)]
+
+    G[Kết quả nhận diện]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G

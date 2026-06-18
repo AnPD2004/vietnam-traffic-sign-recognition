@@ -1,0 +1,14 @@
+flowchart LR
+
+    A[Ảnh đầu vào]
+    B[Mô hình YOLO]
+    C[Phát hiện vị trí biển báo<br/>(Bounding Box)]
+    D[Phân loại biển báo<br/>(Class)]
+    E[Kết quả nhận diện]
+
+    A --> B
+    B --> C
+    B --> D
+
+    C --> E
+    D --> E

@@ -1,0 +1,24 @@
+flowchart TB
+
+    A[Dataset Classification]
+
+    B[Pretrained CNN<br/>ResNet50 / EfficientNet-B0]
+
+    C[Transfer Learning]
+
+    D[Training]
+
+    E[Validation]
+
+    F[Đánh giá]
+
+    G[Best Weight]
+
+    A --> B
+    B --> C
+
+    C --> D
+    D --> E
+
+    E --> F
+    F --> G

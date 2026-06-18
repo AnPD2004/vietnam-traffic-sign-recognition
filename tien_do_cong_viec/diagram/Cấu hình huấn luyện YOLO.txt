@@ -1,0 +1,14 @@
+flowchart TB
+
+    A[Dataset Detection]
+    B[Pretrained YOLO<br/>YOLOv5n / YOLOv8n / YOLOv11n]
+    C[Training]
+    D[Validation]
+    E[Đánh giá chỉ số]
+    F[Best Weight]
+
+    A --> C
+    B --> C
+    C --> D
+    D --> E
+    E --> F
