@@ -11,7 +11,3 @@ wheels/
 
 # data
 data/
-
-*.pt
-
-*.pth
