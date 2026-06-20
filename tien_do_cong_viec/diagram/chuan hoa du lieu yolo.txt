@@ -1,0 +1,16 @@
+flowchart TB
+
+    A[Dataset gốc]
+
+    B[Chuẩn hóa đường dẫn dữ liệu]
+
+    C[Ánh xạ ảnh và nhãn]
+
+    D[Kiểm tra tính hợp lệ]
+
+    E[Dataset Detection]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E

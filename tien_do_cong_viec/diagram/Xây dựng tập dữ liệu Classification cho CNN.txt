@@ -1,0 +1,22 @@
+flowchart TB
+
+    A[Dataset Detection]
+
+    B[Crop biển báo từ Bounding Box]
+
+    C[Dataset Classification]
+
+    D[Resize 224×224]
+
+    E[Data Augmentation<br/>Flip, Brightness, Contrast]
+
+    F[Normalization<br/>ImageNet Mean & Std]
+
+    G[Dataset sẵn sàng huấn luyện CNN]
+
+    A --> B
+    B --> C
+    C --> D
+    D --> E
+    E --> F
+    F --> G
