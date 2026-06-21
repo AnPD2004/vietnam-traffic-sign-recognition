@@ -1,0 +1,29 @@
+data:
+  yolo_yaml: data/vn-traffic-signs/data.yaml
+  classes: data/vn-traffic-signs/classes.txt
+  test_split: val
+
+artifacts:
+  pipeline1_best: artifacts/pipeline1/best/best.json
+  pipeline2_best: artifacts/pipeline2/best/best.json
+
+inference:
+  conf: 0.25
+  iou: 0.7
+  imgsz: null
+  max_det: 300
+  crop_padding: 0.05
+
+evaluation:
+  match_iou: 0.5
+  fps_warmup: 3
+  fps_runs: 10
+  skip_fps: false
+
+selection:
+  primary: map50_95
+  tie_breakers:
+    - f1_macro
+    - fps
+
+output: artifacts/benchmark

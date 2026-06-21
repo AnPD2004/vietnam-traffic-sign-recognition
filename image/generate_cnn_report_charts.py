@@ -22,8 +22,15 @@ COLORS = {
     "accent": "#F18F01",
     "best": "#27AE60",
     "baseline": "#7F8C8D",
+    "fps": "#1B9E77",
     "bg": "#FAFAFA",
 }
+
+# Flow 2 e2e latency estimate: T_yolo + avg_dets * (T_cnn + T_crop)
+# YOLO from Pipeline 1 best; avg detections from test split (1645 / 639 images).
+YOLO_E2E_MS = 7.9242
+AVG_DETS_PER_IMAGE = 1645 / 639
+CROP_OVERHEAD_MS = 0.25
 
 
 def _setup_style() -> None:
@@ -64,6 +71,15 @@ def _get_run(registry: dict, run_id: str) -> dict:
     return registry["runs"][run_id]
 
 
+def estimate_flow2_e2e_ms(cnn_latency_ms: float) -> float:
+    """End-to-end latency per image: YOLO detect + crop + CNN per bbox."""
+    return YOLO_E2E_MS + AVG_DETS_PER_IMAGE * (cnn_latency_ms + CROP_OVERHEAD_MS)
+
+
+def estimate_flow2_e2e_fps(cnn_latency_ms: float) -> float:
+    return 1000.0 / estimate_flow2_e2e_ms(cnn_latency_ms)
+
+
 def fig_431_model_compare(registry: dict, output: Path) -> None:
     """4.3.1 — So sánh baseline ResNet50 và EfficientNet-B0."""
     ids = [
@@ -95,32 +111,46 @@ def fig_431_model_compare(registry: dict, output: Path) -> None:
     axes[0].legend(loc="lower left", fontsize=9)
     axes[0].grid(axis="y", alpha=0.25)
 
-    # Right: latency & model size
-    fps_like = [1.0 / _metric(_get_run(registry, rid), "latency_ms_per_image") for rid in ids]
-    # scale "FPS" proxy just for ordering; ghi chú text giá trị ms và MB
-    lat = [_metric(_get_run(registry, rid), "latency_ms_per_image") for rid in ids]
+    # Right: Flow 2 e2e latency (YOLO + CNN), FPS, CNN model size
+    cnn_lat = [_metric(_get_run(registry, rid), "latency_ms_per_image") for rid in ids]
+    lat_e2e = [estimate_flow2_e2e_ms(v) for v in cnn_lat]
+    fps_e2e = [estimate_flow2_e2e_fps(v) for v in cnn_lat]
     size = [_metric(_get_run(registry, rid), "model_size_mb") for rid in ids]
 
     ax_l = axes[1]
-    ax_r = ax_l.twinx()
+    ax_fps = ax_l.twinx()
+    ax_mb = ax_l.twinx()
+    ax_mb.spines["right"].set_position(("axes", 1.14))
+    ax_mb.spines["right"].set_visible(True)
+
     pos = np.arange(len(labels))
-    bars_lat = ax_l.bar(pos - 0.18, lat, 0.35, color=COLORS["accent"], label="Latency (ms/ảnh)")
-    bars_mb = ax_r.bar(pos + 0.18, size, 0.35, color=COLORS["baseline"], label="Kích thước (MB)")
+    w = 0.24
+    bars_lat = ax_l.bar(pos - w, lat_e2e, w, color=COLORS["accent"], label="Latency e2e (ms/ảnh)")
+    bars_fps = ax_fps.bar(pos, fps_e2e, w, color=COLORS["fps"], label="FPS e2e")
+    bars_mb = ax_mb.bar(pos + w, size, w, color=COLORS["baseline"], label="Kích thước CNN (MB)")
+
     ax_l.set_xticks(pos)
     ax_l.set_xticklabels(labels)
-    ax_l.set_ylabel("Latency (ms/ảnh)")
-    ax_r.set_ylabel("Kích thước (MB)")
-    ax_l.set_title("Tốc độ suy luận & kích thước mô hình", fontweight="bold")
+    ax_l.set_ylabel("Latency e2e (ms/ảnh)")
+    ax_fps.set_ylabel("FPS e2e", color=COLORS["fps"])
+    ax_fps.tick_params(axis="y", labelcolor=COLORS["fps"])
+    ax_fps.set_ylim(0, max(fps_e2e) * 1.35)
+    ax_mb.set_ylabel("Kích thước CNN (MB)", color=COLORS["baseline"])
+    ax_mb.tick_params(axis="y", labelcolor=COLORS["baseline"])
+    ax_mb.set_ylim(0, max(size) * 1.25)
+    ax_l.set_ylim(0, max(lat_e2e) * 1.28)
+    ax_l.set_title("Tốc độ suy luận e2e (YOLO+CNN) & kích thước", fontweight="bold")
     ax_l.grid(axis="y", alpha=0.25)
 
-    for bar, v in zip(bars_lat, lat, strict=True):
-        ax_l.text(bar.get_x() + bar.get_width() / 2, v + 0.2, f"{v:.2f}", ha="center", fontsize=8)
+    for bar, v in zip(bars_lat, lat_e2e, strict=True):
+        ax_l.text(bar.get_x() + bar.get_width() / 2, v + 0.4, f"{v:.2f}", ha="center", fontsize=7)
+    for bar, v in zip(bars_fps, fps_e2e, strict=True):
+        ax_fps.text(bar.get_x() + bar.get_width() / 2, v + 0.6, f"{v:.1f}", ha="center", fontsize=7, color=COLORS["fps"])
     for bar, v in zip(bars_mb, size, strict=True):
-        ax_r.text(bar.get_x() + bar.get_width() / 2, v + 1.0, f"{v:.2f}", ha="center", fontsize=8)
+        ax_mb.text(bar.get_x() + bar.get_width() / 2, v + 1.5, f"{v:.2f}", ha="center", fontsize=7)
 
-    lines = [bars_lat, bars_mb]
-    labels_legend = ["Latency (ms/ảnh)", "Kích thước (MB)"]
-    ax_l.legend(lines, labels_legend, loc="upper right", fontsize=8)
+    handles = [bars_lat, bars_fps, bars_mb]
+    ax_l.legend(handles, [h.get_label() for h in handles], loc="upper left", fontsize=7)
 
     fig.suptitle("4.3.1 — Đánh giá baseline ResNet50 và EfficientNet-B0", fontsize=13, fontweight="bold", y=1.02)
     fig.savefig(output)

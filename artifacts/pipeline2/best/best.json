@@ -2891,6 +2891,7 @@
         ]
       ],
       "latency_ms_per_image": 7.5452,
+      "FPS": 35.7,
       "num_samples": 1645,
       "epoch": 11,
       "model_size_mb": 15.8472

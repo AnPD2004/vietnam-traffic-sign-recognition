@@ -371,5 +371,4 @@ Compare model outputs
 ## Pending / Partial
 
 - [ ] Inference CLI folder is not implemented: `src/infer/`
-- [ ] Stage 3 benchmark comparing Pipeline 1 vs Pipeline 2 is not implemented
-- [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`, `/benchmark`
+- [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`

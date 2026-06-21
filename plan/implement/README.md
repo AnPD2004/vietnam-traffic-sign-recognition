@@ -22,6 +22,7 @@ python -m src.pipeline2
 | [03-migration.md](03-migration.md) | Map code cũ → mới, checklist refactor |
 | [04-artifact-layout.md](04-artifact-layout.md) | **Cấu trúc folder, đặt tên model theo tham số, registry** |
 | [05-test-mode.md](05-test-mode.md) | **`--test` — full flow, 1 epoch, artifact tách biệt** |
+| [06-stage3-benchmark.md](06-stage3-benchmark.md) | **Stage 3 — so sánh Flow 1 vs Flow 2 end-to-end** |
 
 ## Tham chiếu design
 
@@ -46,6 +47,7 @@ Phase A  →  Cấu trúc thư mục + config YAML + shared metrics/report
 Phase B  →  Pipeline 1 (YOLO benchmark end-to-end)
 Phase C  →  Pipeline 2 (phụ thuộc best YOLO từ P1)
 Phase D  →  Xóa/deprecate code cũ, cập nhật README + flow.md
+Phase E  →  Stage 3 benchmark: python -m src.benchmark (xem 06-stage3-benchmark.md)
 ```
 
 ## Ước lượng số run training

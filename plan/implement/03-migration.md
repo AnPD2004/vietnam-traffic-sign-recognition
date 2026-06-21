@@ -92,17 +92,18 @@ python -m src.pipeline2
 | OOM batch=32 trên GPU nhỏ | Catch OOM → ghi `status: failed` vào metrics, không crash pipeline |
 | P2 chạy khi P1 chưa xong | Validate `artifacts/pipeline1/best/best.json` exists, exit rõ ràng |
 
-## Stage 3 — So sánh Pipeline 1 vs 2 (ngoài scope refactor này)
+## Stage 3 — So sánh Pipeline 1 vs 2 (Phase E — ngoài scope refactor P1/P2)
 
-Sau khi cả 2 pipeline chạy xong, thêm lệnh thứ 3 (optional):
+Sau khi cả 2 pipeline chạy xong:
 
 ```bash
 python -m src.benchmark   # so sánh flow1 vs flow2 trên cùng test set
 ```
 
-Để trong `plan/implement/` phase sau hoặc `src/benchmark/run.py`.
+**Chi tiết implement:** [06-stage3-benchmark.md](06-stage3-benchmark.md)
 
 Metrics: detection + classification performance, FPS, model size tổng (YOLO + CNN).
+Output: `artifacts/benchmark/best_pipeline.json`.
 
 ## Definition of Done
 
