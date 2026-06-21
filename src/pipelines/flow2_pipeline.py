@@ -74,7 +74,8 @@ class Flow2YoloCnnPipeline:
                 boxes_xyxy, detector_confidences, strict=True
             ):
                 crop = crop_bbox(result.orig_img, bbox, padding=crop_padding)
-                class_id, class_name, confidence = self.cnn_classifier.predict_crop(crop)
+                class_id, _, confidence = self.cnn_classifier.predict_crop(crop)
+                class_name = self.yolo_model.names[class_id]
 
                 detections.append(
                     {

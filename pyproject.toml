@@ -10,6 +10,8 @@ dependencies = [
     "torchvision",
     "ultralytics>=8.4.37",
     "pyyaml>=6.0",
+    "flask>=3.0",
+    "pillow>=10.0",
 ]
 
 [[tool.uv.index]]

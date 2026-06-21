@@ -370,5 +370,4 @@ Compare model outputs
 
 ## Pending / Partial
 
-- [ ] Inference CLI folder is not implemented: `src/infer/`
 - [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`
