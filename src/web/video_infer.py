@@ -12,7 +12,6 @@ from src.web.models import InferenceService
 from src.web.video_encode import transcode_to_browser_mp4
 from src.web.video_tracker import VideoTrackStabilizer
 
-MAX_FRAMES = 300
 TRACKER_CONFIG = "bytetrack.yaml"
 
 
@@ -114,7 +113,6 @@ def _build_video_metrics(
     elapsed_s: float,
     frame_count: int,
     sign_count: int,
-    truncated: bool,
 ) -> dict[str, Any]:
     inference_ms = round(elapsed_s * 1000, 2)
     fps = round(frame_count / elapsed_s, 2) if elapsed_s > 0 else 0.0
@@ -123,7 +121,6 @@ def _build_video_metrics(
         "sign_count": sign_count,
         "inference_ms": inference_ms,
         "fps": fps,
-        "truncated": truncated,
     }
 
 
@@ -170,10 +167,9 @@ def _process_video(
             raise ValueError("Không thể tạo file video đầu ra.")
 
         frame_count = 0
-        truncated = False
         start = time.perf_counter()
 
-        while frame_count < MAX_FRAMES:
+        while True:
             ok, frame = capture.read()
             if not ok:
                 break
@@ -208,14 +204,11 @@ def _process_video(
             writer.write(frame)
             frame_count += 1
 
-        if frame_count == MAX_FRAMES:
-            truncated = capture.read()[0]
-
         if frame_count == 0:
             raise ValueError("Video không có frame nào để xử lý.")
 
         elapsed = time.perf_counter() - start
-        metrics = _build_video_metrics(elapsed, frame_count, len(signs), truncated)
+        metrics = _build_video_metrics(elapsed, frame_count, len(signs))
 
         writer.release()
         writer = None

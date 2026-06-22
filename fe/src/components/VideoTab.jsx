@@ -43,7 +43,7 @@ export default function VideoTab() {
     <>
       <MediaUpload
         stepTitle="Tải video đầu vào"
-        stepDescription="Hỗ trợ MP4, WEBM, AVI, MOV, MKV. Xử lý tối đa 300 frame đầu tiên."
+        stepDescription="Hỗ trợ MP4, WEBM, AVI, MOV, MKV. Xử lý toàn bộ video."
         file={file}
         previewUrl={previewUrl}
         loading={loading}

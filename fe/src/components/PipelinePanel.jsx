@@ -130,12 +130,6 @@ export default function PipelinePanel({
 
         <SignList signs={signs} pipelineId={id} isVideo={isVideo} />
 
-        {metrics?.truncated && (
-          <p className="note">
-            Video vượt giới hạn demo — chỉ xử lý 300 frame đầu tiên.
-          </p>
-        )}
-
         {resultImage && (
           <ResultImage src={resultImage} alt={`Kết quả ${title}`} />
         )}
