@@ -24,7 +24,7 @@ def _hex_to_bgr(hex_color: str) -> tuple[int, int, int]:
 
 
 def _label_for_detection(det: dict[str, Any]) -> str:
-    name = det.get("class_name", "?")
+    name = det.get("class_name_vie") or det.get("class_name", "?")
     conf = det.get("confidence", 0.0)
     return f"{name} {conf:.2f}"
 
@@ -78,7 +78,6 @@ def _flow1_frame_observations(
     observations: list[dict[str, Any]] = []
 
     for result in results:
-        names = result.names
         if result.boxes is None or result.boxes.id is None:
             continue
 
@@ -94,8 +93,8 @@ def _flow1_frame_observations(
             observations.append(
                 {
                     "track_id": int(track_id),
+                    "class_id": class_index,
                     "bbox": bbox,
-                    "class_name": names[class_index],
                     "confidence": float(confidence),
                 }
             )
@@ -107,7 +106,7 @@ def _flow2_frame_observations(
     service: InferenceService,
     frame: Any,
     imgsz: int,
-    class_cache: dict[int, tuple[str, float]],
+    class_cache: dict[int, tuple[int, float]],
     crop_padding: float = 0.05,
 ) -> list[dict[str, Any]]:
     results = _track_yolo_frame(service.flow2.yolo_model, frame, imgsz, service.device)
@@ -125,15 +124,14 @@ def _flow2_frame_observations(
             if track_id not in class_cache:
                 crop = crop_bbox(result.orig_img, bbox, padding=crop_padding)
                 class_id, _, confidence = service.flow2.cnn_classifier.predict_crop(crop)
-                class_name = service.flow2.yolo_model.names[class_id]
-                class_cache[track_id] = (class_name, float(confidence))
+                class_cache[track_id] = (class_id, float(confidence))
 
-            class_name, confidence = class_cache[track_id]
+            class_id, confidence = class_cache[track_id]
             observations.append(
                 {
                     "track_id": track_id,
+                    "class_id": class_id,
                     "bbox": bbox,
-                    "class_name": class_name,
                     "confidence": confidence,
                 }
             )
@@ -149,14 +147,14 @@ def _reset_yolo_tracker(model: Any) -> None:
 def _build_video_metrics(
     elapsed_s: float,
     frame_count: int,
-    max_signs_per_frame: int,
+    sign_count: int,
     truncated: bool,
 ) -> dict[str, Any]:
     inference_ms = round(elapsed_s * 1000, 2)
     fps = round(frame_count / elapsed_s, 2) if elapsed_s > 0 else 0.0
     return {
         "frame_count": frame_count,
-        "sign_count": max_signs_per_frame,
+        "sign_count": sign_count,
         "inference_ms": inference_ms,
         "fps": fps,
         "truncated": truncated,
@@ -176,7 +174,9 @@ def _process_video(
     raw_path = output_path.with_suffix(".raw.avi")
     final_path = output_path.with_suffix(".mp4")
     stabilizer = VideoTrackStabilizer()
-    class_cache: dict[int, tuple[str, float]] = {}
+    class_cache: dict[int, tuple[int, float]] = {}
+    logged_track_ids: set[int] = set()
+    signs: list[dict[str, Any]] = []
 
     try:
         if flow == "flow1":
@@ -204,7 +204,6 @@ def _process_video(
             raise ValueError("Không thể tạo file video đầu ra.")
 
         frame_count = 0
-        max_signs_per_frame = 0
         truncated = False
         start = time.perf_counter()
 
@@ -220,8 +219,25 @@ def _process_video(
                     service, frame, imgsz, class_cache
                 )
 
-            detections = stabilizer.update(observations)
-            max_signs_per_frame = max(max_signs_per_frame, len(detections))
+            visible = stabilizer.update(observations)
+            detections = service.label_mapper.enrich_many(visible)
+            time_s = round(frame_count / fps, 2)
+
+            for det in detections:
+                track_id = int(det["track_id"])
+                if track_id in logged_track_ids:
+                    continue
+                logged_track_ids.add(track_id)
+                signs.append(
+                    {
+                        "class_id": det.get("class_id"),
+                        "class_code": det.get("class_code"),
+                        "class_name_vie": det.get("class_name_vie", "?"),
+                        "confidence": det.get("confidence", 0.0),
+                        "time_s": time_s,
+                    }
+                )
+
             _draw_detections(frame, detections, box_color)
             writer.write(frame)
             frame_count += 1
@@ -233,7 +249,7 @@ def _process_video(
             raise ValueError("Video không có frame nào để xử lý.")
 
         elapsed = time.perf_counter() - start
-        metrics = _build_video_metrics(elapsed, frame_count, max_signs_per_frame, truncated)
+        metrics = _build_video_metrics(elapsed, frame_count, len(signs), truncated)
 
         writer.release()
         writer = None
@@ -246,6 +262,7 @@ def _process_video(
         return {
             "flow": "flow1_yolo_yolo" if flow == "flow1" else "flow2_yolo_cnn",
             "metrics": metrics,
+            "signs": signs,
             "output_path": final_path,
         }
     finally:

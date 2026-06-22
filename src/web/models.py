@@ -5,6 +5,7 @@ from typing import Any
 
 from src.pipelines.flow1_pipeline import Flow1YoloYoloPipeline
 from src.pipelines.flow2_pipeline import Flow2YoloCnnPipeline
+from src.web.class_labels import ClassLabelMapper
 from src.web.load_models import BestModelPaths, resolve_best_models
 
 
@@ -13,6 +14,7 @@ class InferenceService:
         self.project_root = project_root
         self.device = device
         self.paths = resolve_best_models(project_root)
+        self.label_mapper = ClassLabelMapper.from_project_root(project_root)
         self._flow1: Flow1YoloYoloPipeline | None = None
         self._flow2: Flow2YoloCnnPipeline | None = None
 

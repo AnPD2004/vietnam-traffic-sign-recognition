@@ -9,6 +9,7 @@ from flask import Blueprint, current_app, jsonify, request, send_file
 from werkzeug.utils import secure_filename
 
 from src.web.annotate import annotate_detections
+from src.web.class_labels import build_image_signs
 from src.web.video_infer import process_video_flow1, process_video_flow2
 
 api_bp = Blueprint("api", __name__)
@@ -62,29 +63,29 @@ def _save_video_upload() -> Path:
     )
 
 
-def _build_metrics(elapsed_s: float, detections: list[dict[str, Any]]) -> dict[str, Any]:
-    inference_ms = round(elapsed_s * 1000, 2)
-    fps = round(1.0 / elapsed_s, 2) if elapsed_s > 0 else 0.0
+def _build_metrics(elapsed_s: float, sign_count: int) -> dict[str, Any]:
     return {
-        "sign_count": len(detections),
-        "inference_ms": inference_ms,
-        "fps": fps,
+        "sign_count": sign_count,
+        "inference_ms": round(elapsed_s * 1000, 2),
     }
 
 
 def _predict_response(
+    service: Any,
     result: dict[str, Any],
     image_path: Path,
     elapsed_s: float,
     box_color: str,
 ) -> dict[str, Any]:
-    detections = result.get("detections", [])
-    metrics = _build_metrics(elapsed_s, detections)
+    detections = service.label_mapper.enrich_many(result.get("detections", []))
+    signs = build_image_signs(detections)
+    metrics = _build_metrics(elapsed_s, len(signs))
     annotated_b64 = annotate_detections(str(image_path), detections, box_color=box_color)
 
     return {
         "flow": result.get("flow"),
         "detections": detections,
+        "signs": signs,
         "metrics": metrics,
         "image_base64": annotated_b64,
     }
@@ -126,7 +127,7 @@ def predict_flow1() -> Any:
         )
         elapsed = time.perf_counter() - start
 
-        payload = _predict_response(result, image_path, elapsed, box_color="#3b82f6")
+        payload = _predict_response(service, result, image_path, elapsed, box_color="#3b82f6")
         payload["pipeline"] = "pipeline1"
         payload["models"] = {
             "yolo": str(service.paths.yolo_weights),
@@ -156,7 +157,7 @@ def predict_flow2() -> Any:
         )
         elapsed = time.perf_counter() - start
 
-        payload = _predict_response(result, image_path, elapsed, box_color="#22c55e")
+        payload = _predict_response(service, result, image_path, elapsed, box_color="#22c55e")
         payload["pipeline"] = "pipeline2"
         payload["models"] = {
             "yolo": str(service.paths.yolo_weights),
@@ -183,6 +184,7 @@ def _video_predict_response(
         "pipeline": pipeline,
         "models": models,
         "metrics": result.get("metrics"),
+        "signs": result.get("signs", []),
         "video_url": f"/outputs/{output_filename}",
     }
 

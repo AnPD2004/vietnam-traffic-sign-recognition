@@ -1,12 +1,8 @@
 import { useCallback, useState } from "react";
 import { runAllPredictions } from "../api.js";
+import { PIPELINES } from "../config/pipelines.js";
 import MediaUpload from "./MediaUpload.jsx";
 import PipelinePanel from "./PipelinePanel.jsx";
-
-const PIPELINES = [
-  { id: 1, title: "Pipeline 1", badge: "YOLO End-to-End", variant: "flow1" },
-  { id: 2, title: "Pipeline 2", badge: "YOLO + CNN", variant: "flow2" },
-];
 
 export default function ImageTab() {
   const [file, setFile] = useState(null);
@@ -46,32 +42,43 @@ export default function ImageTab() {
   return (
     <>
       <MediaUpload
+        stepTitle="Tải ảnh đầu vào"
+        stepDescription="Hỗ trợ JPG, PNG, WEBP, BMP. Hai pipeline được gọi song song trên cùng một ảnh."
         file={file}
         previewUrl={previewUrl}
         loading={loading}
         accept="image/*"
         mediaType="image"
-        placeholderIcon="📷"
-        placeholderText="Chọn ảnh hoặc kéo thả vào đây"
-        loadingText="Đang xử lý cả 2 pipeline song song..."
+        placeholderText="Chọn file ảnh hoặc kéo thả vào vùng này"
+        hintText="Định dạng: JPG, PNG, WEBP, BMP"
+        loadingText="Đang chạy song song Pipeline 1 và Pipeline 2…"
         onFileSelect={handleFileSelect}
         onRun={handleRun}
       />
-      <main className="main">
-        {PIPELINES.map((pipeline) => (
-          <PipelinePanel
-            key={pipeline.id}
-            id={pipeline.id}
-            title={pipeline.title}
-            badge={pipeline.badge}
-            variant={pipeline.variant}
-            mode="image"
-            loading={loading}
-            error={errors[pipeline.id]}
-            result={results[pipeline.id]}
-          />
-        ))}
-      </main>
+      <section className="results-section">
+        <header className="section-header section-header--results">
+          <h2 className="section-title">Kết quả so sánh pipeline</h2>
+          <p className="section-desc">
+            Metrics và ảnh đầu ra có gán nhãn. Nhấn vào ô &quot;Số biển báo&quot; để xem chi tiết.
+          </p>
+        </header>
+        <main className="main">
+          {PIPELINES.map((pipeline) => (
+            <PipelinePanel
+              key={pipeline.id}
+              id={pipeline.id}
+              title={pipeline.title}
+              badge={pipeline.badge}
+              description={pipeline.description}
+              variant={pipeline.variant}
+              mode="image"
+              loading={loading}
+              error={errors[pipeline.id]}
+              result={results[pipeline.id]}
+            />
+          ))}
+        </main>
+      </section>
     </>
   );
 }

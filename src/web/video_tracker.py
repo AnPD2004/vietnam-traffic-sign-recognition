@@ -11,8 +11,8 @@ EMA_ALPHA = 0.72
 @dataclass
 class _TrackState:
     track_id: int
+    class_id: int
     bbox: list[float]
-    class_name: str
     confidence: float
     hits: int = 1
     misses: int = 0
@@ -42,15 +42,15 @@ class VideoTrackStabilizer:
             track_id = int(item["track_id"])
             seen_ids.add(track_id)
             bbox = [float(v) for v in item["bbox"]]
-            class_name = item["class_name"]
+            class_id = int(item["class_id"])
             confidence = float(item["confidence"])
 
             existing = self._tracks.get(track_id)
             if existing is None:
                 self._tracks[track_id] = _TrackState(
                     track_id=track_id,
+                    class_id=class_id,
                     bbox=bbox,
-                    class_name=class_name,
                     confidence=confidence,
                 )
                 continue
@@ -72,8 +72,9 @@ class VideoTrackStabilizer:
                 continue
             visible.append(
                 {
+                    "track_id": state.track_id,
+                    "class_id": state.class_id,
                     "bbox": [round(v, 2) for v in state.bbox],
-                    "class_name": state.class_name,
                     "confidence": round(state.confidence, 6),
                 }
             )

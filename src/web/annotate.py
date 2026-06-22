@@ -8,7 +8,7 @@ from PIL import Image, ImageDraw, ImageFont
 
 
 def _label_for_detection(det: dict[str, Any]) -> str:
-    name = det.get("class_name", "?")
+    name = det.get("class_name_vie") or det.get("class_name", "?")
     conf = det.get("confidence", 0.0)
     return f"{name} {conf:.2f}"
 

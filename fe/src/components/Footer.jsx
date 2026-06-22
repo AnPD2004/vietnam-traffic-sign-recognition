@@ -2,7 +2,8 @@ import { useEffect, useState } from "react";
 import { loadModelInfo } from "../api.js";
 
 export default function Footer() {
-  const [modelInfo, setModelInfo] = useState("Đang tải thông tin model...");
+  const [models, setModels] = useState(null);
+  const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -10,21 +11,14 @@ export default function Footer() {
     async function fetchInfo() {
       try {
         const data = await loadModelInfo();
-        if (cancelled) return;
-
-        const p1 = data.models?.pipeline1;
-        const p2 = data.models?.pipeline2;
-
-        setModelInfo(
-          `P1 YOLO: ${p1?.yolo_run_id || "—"} | ` +
-            `P2 YOLO: ${p2?.yolo_run_id || "—"} | ` +
-            `P2 CNN: ${p2?.cnn_run_id || "—"}`,
-        );
+        if (!cancelled) {
+          setModels(data.models);
+          setError(false);
+        }
       } catch {
         if (!cancelled) {
-          setModelInfo(
-            "Không thể tải thông tin model. Hãy chạy server Flask.",
-          );
+          setModels(null);
+          setError(true);
         }
       }
     }
@@ -35,9 +29,40 @@ export default function Footer() {
     };
   }, []);
 
+  const p1 = models?.pipeline1;
+  const p2 = models?.pipeline2;
+
   return (
     <footer className="footer">
-      <p>{modelInfo}</p>
+      <div className="footer-inner">
+        <h2 className="footer-title">Cấu hình mô hình đang sử dụng</h2>
+        {error ? (
+          <p className="footer-error">
+            Không kết nối được API. Vui lòng khởi động server Flask.
+          </p>
+        ) : !models ? (
+          <p className="footer-muted">Đang tải thông tin mô hình…</p>
+        ) : (
+          <dl className="footer-grid">
+            <div className="footer-item">
+              <dt>Pipeline 1 — YOLO</dt>
+              <dd>{p1?.yolo_run_id || "—"}</dd>
+            </div>
+            <div className="footer-item">
+              <dt>Pipeline 2 — YOLO</dt>
+              <dd>{p2?.yolo_run_id || "—"}</dd>
+            </div>
+            <div className="footer-item">
+              <dt>Pipeline 2 — CNN</dt>
+              <dd>{p2?.cnn_run_id || "—"}</dd>
+            </div>
+            <div className="footer-item">
+              <dt>Kích thước đầu vào (imgsz)</dt>
+              <dd>{p1?.imgsz ?? "—"} px</dd>
+            </div>
+          </dl>
+        )}
+      </div>
     </footer>
   );
 }
