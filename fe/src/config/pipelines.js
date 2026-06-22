@@ -5,7 +5,7 @@ export const PIPELINES = [
     badge: "YOLO End-to-End",
     variant: "flow1",
     description:
-      "Một mô hình YOLO thực hiện đồng thời phát hiện vị trí và phân loại biển báo.",
+      "Một mô hình YOLO đồng thời phát hiện vị trí và phân loại biển báo.",
   },
   {
     id: 2,

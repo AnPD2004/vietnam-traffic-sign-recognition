@@ -7,6 +7,7 @@ from typing import Any
 import cv2
 
 from src.common.image_ops import crop_bbox
+from src.web.annotate import draw_detections_on_bgr_frame
 from src.web.models import InferenceService
 from src.web.video_encode import transcode_to_browser_mp4
 from src.web.video_tracker import VideoTrackStabilizer
@@ -14,41 +15,6 @@ from src.web.video_tracker import VideoTrackStabilizer
 MAX_FRAMES = 300
 TRACKER_CONFIG = "bytetrack.yaml"
 
-
-def _hex_to_bgr(hex_color: str) -> tuple[int, int, int]:
-    value = hex_color.lstrip("#")
-    red = int(value[0:2], 16)
-    green = int(value[2:4], 16)
-    blue = int(value[4:6], 16)
-    return blue, green, red
-
-
-def _label_for_detection(det: dict[str, Any]) -> str:
-    name = det.get("class_name_vie") or det.get("class_name", "?")
-    conf = det.get("confidence", 0.0)
-    return f"{name} {conf:.2f}"
-
-
-def _draw_detections(
-    frame: Any,
-    detections: list[dict[str, Any]],
-    box_color: str,
-) -> None:
-    color = _hex_to_bgr(box_color)
-    for det in detections:
-        x1, y1, x2, y2 = map(int, det["bbox"])
-        label = _label_for_detection(det)
-        cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
-        cv2.putText(
-            frame,
-            label,
-            (x1, max(y1 - 8, 0)),
-            cv2.FONT_HERSHEY_SIMPLEX,
-            0.5,
-            color,
-            2,
-            cv2.LINE_AA,
-        )
 
 
 def _track_yolo_frame(
@@ -238,7 +204,7 @@ def _process_video(
                     }
                 )
 
-            _draw_detections(frame, detections, box_color)
+            draw_detections_on_bgr_frame(frame, detections, box_color=box_color)
             writer.write(frame)
             frame_count += 1
 
