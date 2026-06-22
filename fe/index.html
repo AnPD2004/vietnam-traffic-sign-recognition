@@ -1,113 +1,12 @@
 <!DOCTYPE html>
 <html lang="vi">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Nhận dạng Biển báo Giao thông Việt Nam</title>
-  <link rel="stylesheet" href="/css/style.css" />
-</head>
-<body>
-  <header class="header">
-    <div class="header-inner">
-      <h1>Nhận dạng Biển báo Giao thông</h1>
-      <p class="subtitle">So sánh Pipeline 1 (YOLO End-to-End) và Pipeline 2 (YOLO + CNN)</p>
-    </div>
-  </header>
-
-  <main class="main">
-    <section class="pipeline-panel" data-pipeline="1">
-      <div class="panel-header panel-header--flow1">
-        <h2>Pipeline 1</h2>
-        <span class="badge">YOLO End-to-End</span>
-      </div>
-
-      <div class="panel-body">
-        <label class="upload-zone" data-upload="1">
-          <input type="file" accept="image/*" hidden data-input="1" />
-          <div class="upload-placeholder" data-placeholder="1">
-            <span class="upload-icon">📷</span>
-            <span>Chọn ảnh hoặc kéo thả vào đây</span>
-          </div>
-          <img class="preview-img" data-preview="1" alt="Preview Pipeline 1" hidden />
-        </label>
-
-        <button class="btn btn--primary" data-run="1" disabled>Chạy nhận dạng</button>
-
-        <div class="metrics" data-metrics="1" hidden>
-          <div class="metric-card">
-            <span class="metric-label">Số biển báo</span>
-            <span class="metric-value" data-sign-count="1">0</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Thời gian suy luận</span>
-            <span class="metric-value" data-inference-ms="1">—</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">FPS</span>
-            <span class="metric-value" data-fps="1">—</span>
-          </div>
-        </div>
-
-        <div class="result" data-result="1" hidden>
-          <h3>Kết quả</h3>
-          <img class="result-img" data-result-img="1" alt="Kết quả Pipeline 1" />
-          <ul class="detection-list" data-detections="1"></ul>
-        </div>
-
-        <p class="error" data-error="1" hidden></p>
-        <p class="loading" data-loading="1" hidden>Đang xử lý...</p>
-      </div>
-    </section>
-
-    <section class="pipeline-panel" data-pipeline="2">
-      <div class="panel-header panel-header--flow2">
-        <h2>Pipeline 2</h2>
-        <span class="badge">YOLO + CNN</span>
-      </div>
-
-      <div class="panel-body">
-        <label class="upload-zone" data-upload="2">
-          <input type="file" accept="image/*" hidden data-input="2" />
-          <div class="upload-placeholder" data-placeholder="2">
-            <span class="upload-icon">📷</span>
-            <span>Chọn ảnh hoặc kéo thả vào đây</span>
-          </div>
-          <img class="preview-img" data-preview="2" alt="Preview Pipeline 2" hidden />
-        </label>
-
-        <button class="btn btn--success" data-run="2" disabled>Chạy nhận dạng</button>
-
-        <div class="metrics" data-metrics="2" hidden>
-          <div class="metric-card">
-            <span class="metric-label">Số biển báo</span>
-            <span class="metric-value" data-sign-count="2">0</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">Thời gian suy luận</span>
-            <span class="metric-value" data-inference-ms="2">—</span>
-          </div>
-          <div class="metric-card">
-            <span class="metric-label">FPS</span>
-            <span class="metric-value" data-fps="2">—</span>
-          </div>
-        </div>
-
-        <div class="result" data-result="2" hidden>
-          <h3>Kết quả</h3>
-          <img class="result-img" data-result-img="2" alt="Kết quả Pipeline 2" />
-          <ul class="detection-list" data-detections="2"></ul>
-        </div>
-
-        <p class="error" data-error="2" hidden></p>
-        <p class="loading" data-loading="2" hidden>Đang xử lý...</p>
-      </div>
-    </section>
-  </main>
-
-  <footer class="footer">
-    <p id="model-info">Đang tải thông tin model...</p>
-  </footer>
-
-  <script src="/js/app.js"></script>
-</body>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Nhận dạng Biển báo Giao thông Việt Nam</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
 </html>

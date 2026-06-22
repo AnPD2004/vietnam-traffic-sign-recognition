@@ -367,7 +367,4 @@ Compare model outputs
 - [x] Pipeline 1 weight files (`*.pt`) present; `artifacts/pipeline1/best/best.json` points to valid weights
 - [x] Classification crop dataset present at `data/vn-traffic-signs/crops`
 - [x] Pipeline 2 benchmark completed under `artifacts/pipeline2/` (registry, runs, report)
-
-## Pending / Partial
-
-- [ ] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`
+- [x] Flask/web API endpoints are not implemented: `/predict/flow1`, `/predict/flow2`
