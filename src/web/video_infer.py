@@ -9,8 +9,10 @@ import cv2
 from src.common.image_ops import crop_bbox
 from src.web.models import InferenceService
 from src.web.video_encode import transcode_to_browser_mp4
+from src.web.video_tracker import VideoTrackStabilizer
 
 MAX_FRAMES = 300
+TRACKER_CONFIG = "bytetrack.yaml"
 
 
 def _hex_to_bgr(hex_color: str) -> tuple[int, int, int]:
@@ -49,85 +51,99 @@ def _draw_detections(
         )
 
 
-def _flow1_frame_detections(service: InferenceService, frame: Any, imgsz: int) -> list[dict[str, Any]]:
-    results = service.flow1.model.predict(
+def _track_yolo_frame(
+    model: Any,
+    frame: Any,
+    imgsz: int,
+    device: str | None,
+) -> list[Any]:
+    return model.track(
         frame,
         imgsz=imgsz,
-        conf=0.25,
+        conf=0.3,
         iou=0.7,
-        device=service.device,
+        device=device,
+        persist=True,
+        tracker=TRACKER_CONFIG,
         verbose=False,
     )
-    detections: list[dict[str, Any]] = []
+
+
+def _flow1_frame_observations(
+    service: InferenceService,
+    frame: Any,
+    imgsz: int,
+) -> list[dict[str, Any]]:
+    results = _track_yolo_frame(service.flow1.model, frame, imgsz, service.device)
+    observations: list[dict[str, Any]] = []
 
     for result in results:
         names = result.names
-        if result.boxes is None:
+        if result.boxes is None or result.boxes.id is None:
             continue
 
         boxes_xyxy = result.boxes.xyxy.cpu().tolist()
         confidences = result.boxes.conf.cpu().tolist()
         class_ids = result.boxes.cls.cpu().tolist()
+        track_ids = result.boxes.id.int().cpu().tolist()
 
-        for bbox, confidence, class_id in zip(
-            boxes_xyxy, confidences, class_ids, strict=True
+        for bbox, confidence, class_id, track_id in zip(
+            boxes_xyxy, confidences, class_ids, track_ids, strict=True
         ):
             class_index = int(class_id)
-            detections.append(
+            observations.append(
                 {
-                    "bbox": [round(v, 2) for v in bbox],
-                    "class_id": class_index,
+                    "track_id": int(track_id),
+                    "bbox": bbox,
                     "class_name": names[class_index],
-                    "confidence": round(float(confidence), 6),
-                    "source": "yolo",
+                    "confidence": float(confidence),
                 }
             )
 
-    return detections
+    return observations
 
 
-def _flow2_frame_detections(
+def _flow2_frame_observations(
     service: InferenceService,
     frame: Any,
     imgsz: int,
+    class_cache: dict[int, tuple[str, float]],
     crop_padding: float = 0.05,
 ) -> list[dict[str, Any]]:
-    results = service.flow2.yolo_model.predict(
-        frame,
-        imgsz=imgsz,
-        conf=0.25,
-        iou=0.7,
-        device=service.device,
-        verbose=False,
-    )
-    detections: list[dict[str, Any]] = []
+    results = _track_yolo_frame(service.flow2.yolo_model, frame, imgsz, service.device)
+    observations: list[dict[str, Any]] = []
 
     for result in results:
-        if result.boxes is None or result.orig_img is None:
+        if result.boxes is None or result.boxes.id is None or result.orig_img is None:
             continue
 
         boxes_xyxy = result.boxes.xyxy.cpu().tolist()
-        detector_confidences = result.boxes.conf.cpu().tolist()
+        track_ids = result.boxes.id.int().cpu().tolist()
 
-        for bbox, detector_confidence in zip(
-            boxes_xyxy, detector_confidences, strict=True
-        ):
-            crop = crop_bbox(result.orig_img, bbox, padding=crop_padding)
-            class_id, _, confidence = service.flow2.cnn_classifier.predict_crop(crop)
-            class_name = service.flow2.yolo_model.names[class_id]
+        for bbox, track_id in zip(boxes_xyxy, track_ids, strict=True):
+            track_id = int(track_id)
+            if track_id not in class_cache:
+                crop = crop_bbox(result.orig_img, bbox, padding=crop_padding)
+                class_id, _, confidence = service.flow2.cnn_classifier.predict_crop(crop)
+                class_name = service.flow2.yolo_model.names[class_id]
+                class_cache[track_id] = (class_name, float(confidence))
 
-            detections.append(
+            class_name, confidence = class_cache[track_id]
+            observations.append(
                 {
-                    "bbox": [round(v, 2) for v in bbox],
-                    "detector_confidence": round(float(detector_confidence), 6),
-                    "class_id": class_id,
+                    "track_id": track_id,
+                    "bbox": bbox,
                     "class_name": class_name,
-                    "confidence": round(confidence, 6),
-                    "source": {"bbox": "yolo", "class": "cnn"},
+                    "confidence": confidence,
                 }
             )
 
-    return detections
+    return observations
+
+
+def _reset_yolo_tracker(model: Any) -> None:
+    if hasattr(model, "predictor") and model.predictor is not None:
+        model.predictor = None
 
 
 def _build_video_metrics(
@@ -159,8 +175,15 @@ def _process_video(
     writer: Any = None
     raw_path = output_path.with_suffix(".raw.avi")
     final_path = output_path.with_suffix(".mp4")
+    stabilizer = VideoTrackStabilizer()
+    class_cache: dict[int, tuple[str, float]] = {}
 
     try:
+        if flow == "flow1":
+            _reset_yolo_tracker(service.flow1.model)
+        else:
+            _reset_yolo_tracker(service.flow2.yolo_model)
+
         capture = cv2.VideoCapture(str(video_path))
         if not capture.isOpened():
             raise ValueError("Không thể đọc file video.")
@@ -191,10 +214,13 @@ def _process_video(
                 break
 
             if flow == "flow1":
-                detections = _flow1_frame_detections(service, frame, imgsz)
+                observations = _flow1_frame_observations(service, frame, imgsz)
             else:
-                detections = _flow2_frame_detections(service, frame, imgsz)
+                observations = _flow2_frame_observations(
+                    service, frame, imgsz, class_cache
+                )
 
+            detections = stabilizer.update(observations)
             max_signs_per_frame = max(max_signs_per_frame, len(detections))
             _draw_detections(frame, detections, box_color)
             writer.write(frame)
