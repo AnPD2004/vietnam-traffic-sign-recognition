@@ -76,11 +76,18 @@ def _predict_response(
     image_path: Path,
     elapsed_s: float,
     box_color: str,
+    *,
+    pipeline2: bool = False,
 ) -> dict[str, Any]:
     detections = service.label_mapper.enrich_many(result.get("detections", []))
-    signs = build_image_signs(detections)
+    signs = build_image_signs(detections, pipeline2=pipeline2)
     metrics = _build_metrics(elapsed_s, len(signs))
-    annotated_b64 = annotate_detections(str(image_path), detections, box_color=box_color)
+    annotated_b64 = annotate_detections(
+        str(image_path),
+        detections,
+        box_color=box_color,
+        pipeline2=pipeline2,
+    )
 
     return {
         "flow": result.get("flow"),
@@ -157,7 +164,9 @@ def predict_flow2() -> Any:
         )
         elapsed = time.perf_counter() - start
 
-        payload = _predict_response(service, result, image_path, elapsed, box_color="#22c55e")
+        payload = _predict_response(
+            service, result, image_path, elapsed, box_color="#22c55e", pipeline2=True
+        )
         payload["pipeline"] = "pipeline2"
         payload["models"] = {
             "yolo": str(service.paths.yolo_weights),

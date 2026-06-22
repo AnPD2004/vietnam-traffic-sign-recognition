@@ -1,10 +1,11 @@
-import { useEffect, useState } from "react";
 import ResultImage from "./ResultImage.jsx";
 
-function adjustConfidence(confidence, pipelineId) {
-  const rawConf = confidence * 100;
-  const adjusted = pipelineId === 2 ? Math.max(0, rawConf - 1.2) : rawConf;
-  return adjusted.toFixed(1);
+function formatConfidence(confidence, pipelineId, isVideo) {
+  const pct = confidence * 100;
+  if (isVideo && pipelineId === 2) {
+    return Math.max(0, pct - 1.2).toFixed(1);
+  }
+  return pct.toFixed(1);
 }
 
 function formatTime(seconds) {
@@ -17,21 +18,13 @@ function formatTime(seconds) {
   return `${secs}s`;
 }
 
-function SignList({ signs, pipelineId, isVideo, isOpen, onClose }) {
-  if (!isOpen) return null;
+function SignList({ signs, pipelineId, isVideo }) {
+  if (!signs.length) return null;
 
   return (
     <div className="sign-list-panel">
-      <div className="sign-list-header">
-        <h3 className="sign-list-title">Chi tiết biển báo phát hiện</h3>
-        <button type="button" className="btn btn--ghost btn--sm" onClick={onClose}>
-          Đóng
-        </button>
-      </div>
-      {signs.length === 0 ? (
-        <p className="sign-list-empty">Không phát hiện biển báo nào.</p>
-      ) : (
-        <div className="sign-table-wrap">
+      <h3 className="sign-list-title">Chi tiết biển báo phát hiện</h3>
+      <div className="sign-table-wrap">
           <table className="sign-table">
             <thead>
               <tr>
@@ -49,25 +42,24 @@ function SignList({ signs, pipelineId, isVideo, isOpen, onClose }) {
                   <td>{sign.class_name_vie}</td>
                   <td className="sign-table-code">{sign.class_code || "—"}</td>
                   {isVideo && <td>{formatTime(sign.time_s)}</td>}
-                  <td>{adjustConfidence(sign.confidence, pipelineId)}%</td>
+                  <td>{formatConfidence(sign.confidence, pipelineId, isVideo)}%</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      )}
     </div>
   );
 }
 
 const IMAGE_METRICS = [
-  { key: "sign_count", label: "Số biển báo", clickable: true },
+  { key: "sign_count", label: "Số biển báo" },
   { key: "inference_ms", label: "Thời gian suy luận", suffix: " ms" },
 ];
 
 const VIDEO_METRICS = [
   { key: "frame_count", label: "Số frame" },
-  { key: "sign_count", label: "Số biển báo", clickable: true },
+  { key: "sign_count", label: "Số biển báo" },
   { key: "inference_ms", label: "Thời gian xử lý", suffix: " ms" },
   { key: "fps", label: "FPS xử lý" },
 ];
@@ -88,26 +80,15 @@ export default function PipelinePanel({
   error,
   result,
 }) {
-  const [showSigns, setShowSigns] = useState(false);
   const metrics = result?.metrics;
   const signs = result?.signs || [];
   const isVideo = mode === "video";
   const metricConfig = isVideo ? VIDEO_METRICS : IMAGE_METRICS;
 
-  useEffect(() => {
-    setShowSigns(false);
-  }, [result]);
-
   const resultImage = result?.image_base64
     ? `data:image/jpeg;base64,${result.image_base64}`
     : null;
   const resultVideo = result?.video_url || null;
-
-  const toggleSigns = () => {
-    if (signs.length > 0) {
-      setShowSigns((open) => !open);
-    }
-  };
 
   return (
     <article className={`card pipeline-panel pipeline-panel--${variant}`}>
@@ -137,24 +118,6 @@ export default function PipelinePanel({
           <div className={`metrics${isVideo ? " metrics--video" : ""}`}>
             {metricConfig.map((item) => {
               const value = formatMetricValue(metrics[item.key], item.suffix);
-              const isClickable = item.clickable && signs.length > 0;
-
-              if (isClickable) {
-                return (
-                  <button
-                    type="button"
-                    key={item.key}
-                    className="metric-card metric-card--clickable"
-                    onClick={toggleSigns}
-                    aria-expanded={showSigns}
-                    title="Nhấn để xem danh sách biển báo"
-                  >
-                    <span className="metric-label">{item.label}</span>
-                    <span className="metric-value">{value}</span>
-                  </button>
-                );
-              }
-
               return (
                 <div className="metric-card" key={item.key}>
                   <span className="metric-label">{item.label}</span>
@@ -165,13 +128,7 @@ export default function PipelinePanel({
           </div>
         )}
 
-        <SignList
-          signs={signs}
-          pipelineId={id}
-          isVideo={isVideo}
-          isOpen={showSigns}
-          onClose={() => setShowSigns(false)}
-        />
+        <SignList signs={signs} pipelineId={id} isVideo={isVideo} />
 
         {metrics?.truncated && (
           <p className="note">

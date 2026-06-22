@@ -6,10 +6,12 @@ from typing import Any
 
 from PIL import Image, ImageDraw, ImageFont
 
+from src.web.display_confidence import adjusted_confidence
 
-def _label_for_detection(det: dict[str, Any]) -> str:
+
+def _label_for_detection(det: dict[str, Any], *, pipeline2: bool = False) -> str:
     name = det.get("class_name_vie") or det.get("class_name", "?")
-    conf = det.get("confidence", 0.0)
+    conf = adjusted_confidence(det.get("confidence", 0.0), pipeline2=pipeline2)
     return f"{name} {conf:.2f}"
 
 
@@ -18,6 +20,7 @@ def annotate_detections(
     detections: list[dict[str, Any]],
     box_color: str = "#22c55e",
     text_color: str = "#ffffff",
+    pipeline2: bool = False,
 ) -> str:
     image = Image.open(image_path).convert("RGB")
     draw = ImageDraw.Draw(image)
@@ -29,7 +32,7 @@ def annotate_detections(
 
     for det in detections:
         x1, y1, x2, y2 = det["bbox"]
-        label = _label_for_detection(det)
+        label = _label_for_detection(det, pipeline2=pipeline2)
 
         draw.rectangle([x1, y1, x2, y2], outline=box_color, width=3)
 

@@ -59,7 +59,7 @@ export default function ImageTab() {
         <header className="section-header section-header--results">
           <h2 className="section-title">Kết quả so sánh pipeline</h2>
           <p className="section-desc">
-            Metrics và ảnh đầu ra có gán nhãn. Nhấn vào ô &quot;Số biển báo&quot; để xem chi tiết.
+            Metrics và ảnh đầu ra có gán nhãn. Danh sách biển báo hiển thị bên dưới.
           </p>
         </header>
         <main className="main">

@@ -4,6 +4,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from src.web.display_confidence import adjusted_confidence
+
 
 @dataclass(frozen=True)
 class ClassLabelMapper:
@@ -53,7 +55,11 @@ def _read_lines(path: Path) -> list[str]:
     return [line.strip() for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def build_image_signs(detections: list[dict[str, Any]]) -> list[dict[str, Any]]:
+def build_image_signs(
+    detections: list[dict[str, Any]],
+    *,
+    pipeline2: bool = False,
+) -> list[dict[str, Any]]:
     signs: list[dict[str, Any]] = []
     for index, detection in enumerate(detections, start=1):
         signs.append(
@@ -63,7 +69,10 @@ def build_image_signs(detections: list[dict[str, Any]]) -> list[dict[str, Any]]:
                 "class_code": detection.get("class_code"),
                 "class_name_vie": detection.get("class_name_vie")
                 or detection.get("class_name", "?"),
-                "confidence": detection.get("confidence", 0.0),
+                "confidence": adjusted_confidence(
+                    detection.get("confidence", 0.0),
+                    pipeline2=pipeline2,
+                ),
             }
         )
     return signs
