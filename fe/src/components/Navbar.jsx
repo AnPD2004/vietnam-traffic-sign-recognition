@@ -3,6 +3,8 @@ import { NavLink, Link } from "react-router-dom";
 const NAV_LINKS = [
   { to: "/", label: "Trang chủ", end: true },
   { to: "/tinh-nang", label: "Tính năng" },
+  { to: "/#pipeline", label: "Pipeline" },
+  { to: "/#faq", label: "FAQ" },
 ];
 
 export default function Navbar() {
