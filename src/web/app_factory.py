@@ -3,7 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 import torch
-from flask import Flask, send_from_directory
+from flask import Flask, abort, send_from_directory
 
 from src.web.models import InferenceService
 from src.web.routes import api_bp
@@ -32,5 +32,14 @@ def create_app(project_root: Path | None = None) -> Flask:
     @app.get("/assets/<path:filename>")
     def frontend_assets(filename: str):
         return send_from_directory(fe_dist / "assets", filename)
+
+    @app.get("/<path:path>")
+    def spa_fallback(path: str):
+        if path.startswith(("predict", "health", "outputs", "api", "assets")):
+            abort(404)
+        index = fe_dist / "index.html"
+        if not index.is_file():
+            abort(404)
+        return send_from_directory(fe_dist, "index.html")
 
     return app

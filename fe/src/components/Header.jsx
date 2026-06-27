@@ -3,7 +3,7 @@ export default function Header() {
     <header className="header">
       <div className="header-inner">
         <p className="header-eyebrow">Đồ án tốt nghiệp — Demo hệ thống</p>
-        <h1>Hệ thống Nhận dạng Biển báo Giao thông Việt Nam</h1>
+        <h1>HỆ THỐNG NHẬN DIỆN BIỂN BÁO GIAO THÔNG VIỆT NAM</h1>
         <p className="header-subtitle">
           So sánh hiệu năng giữa pipeline YOLO end-to-end và pipeline lai
           YOLO&nbsp;+&nbsp;CNN trên tập 52 lớp biển báo.
