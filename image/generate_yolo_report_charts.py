@@ -58,99 +58,143 @@ def _get_run(runs: dict, run_id: str) -> dict:
     return runs[run_id]
 
 
+YOLO421_MODEL_LABELS = ["YOLOv5n", "YOLOv8n", "YOLOv11n"]
+YOLO421_MOSAIC0_IDS = [
+    "yolov5n_e100_sz640_lr0.005_b16_mos0",
+    "yolov8n_e100_sz640_lr0.005_b16_mos0",
+    "yolov11n_e100_sz640_lr0.005_b16_mos0",
+]
+YOLO421_MOSAIC1_IDS = [
+    "yolov5n_e100_sz640_lr0.005_b16_mos1",
+    "yolov8n_e100_sz640_lr0.005_b16_mos1",
+    "yolov11n_e100_sz640_lr0.005_b16_mos1",
+]
+YOLO421_METRICS = [
+    ("precision", "Precision", None, "{:.3f}"),
+    ("recall", "Recall", None, "{:.3f}"),
+    ("map50", "mAP@0.5", None, "{:.3f}"),
+    ("map50_95", "mAP@0.5:0.95", None, "{:.3f}"),
+    ("fps", "FPS", 180.0, "{:.1f}"),
+    ("model_size_mb", "Kích thước (MB)", 10.0, "{:.2f}"),
+]
+YOLO421_METRIC_LABELS = [label for _, label, _, _ in YOLO421_METRICS]
+YOLO421_MODEL_COLORS = [COLORS["yolov5n"], COLORS["yolov8n"], COLORS["yolov11n"]]
+YOLO421_YLABEL = "Giá trị"
+YOLO421_NOTE = (
+    "Ghi chú: FPS (÷180) và kích thước MB (÷10) được scale để hiển thị cùng biểu đồ; "
+    "nhãn trên cột là giá trị thực."
+)
+
+
+def _yolo421_display_value(raw: float, scale: float | None) -> float:
+    return raw / scale if scale else raw
+
+
+def _draw_421_model_compare_panel(
+    runs: dict,
+    ax,
+    run_ids: list[str],
+    *,
+    subtitle: str,
+    show_legend: bool,
+) -> None:
+    """Grouped bar chart: metrics on x-axis, one bar group per YOLO model."""
+    x = np.arange(len(YOLO421_METRIC_LABELS))
+    width = 0.25
+
+    for i, (rid, label, color) in enumerate(zip(run_ids, YOLO421_MODEL_LABELS, YOLO421_MODEL_COLORS, strict=True)):
+        run = _get_run(runs, rid)
+        vals = [
+            _yolo421_display_value(_metric(run, key), scale)
+            for key, _, scale, _ in YOLO421_METRICS
+        ]
+        bars = ax.bar(x + (i - 1) * width, vals, width, label=label, color=color, edgecolor="white")
+        for bar, (key, _, scale, fmt) in zip(bars, YOLO421_METRICS, strict=True):
+            raw = _metric(run, key)
+            ax.text(
+                bar.get_x() + bar.get_width() / 2,
+                bar.get_height() + 0.01,
+                fmt.format(raw),
+                ha="center",
+                fontsize=7,
+            )
+
+    ax.set_xticks(x)
+    ax.set_xticklabels(YOLO421_METRIC_LABELS)
+    ax.tick_params(axis="x", labelbottom=True)
+    ax.set_ylim(0, 1.08)
+    ax.set_ylabel(YOLO421_YLABEL)
+    ax.set_title(subtitle, fontweight="bold", pad=8)
+    if show_legend:
+        ax.legend(loc="upper right")
+    ax.grid(axis="y", alpha=0.25)
+
+
+def fig_421_model_compare_combined(runs: dict, output: Path) -> None:
+    """4.2.1 — So sánh 3 model: mosaic=0 và mosaic=1, cùng một template."""
+    fig, axes = plt.subplots(2, 1, figsize=(11, 8.5))
+    fig.subplots_adjust(hspace=0.38, top=0.90, bottom=0.10)
+
+    _draw_421_model_compare_panel(
+        runs, axes[0], YOLO421_MOSAIC0_IDS, subtitle="mosaic = 0", show_legend=True
+    )
+    _draw_421_model_compare_panel(
+        runs, axes[1], YOLO421_MOSAIC1_IDS, subtitle="mosaic = 1", show_legend=False
+    )
+
+    fig.suptitle(
+        "4.2.1 — So sánh các mô hình YOLO (mosaic = 0 và mosaic = 1)",
+        fontsize=13,
+        fontweight="bold",
+    )
+    fig.text(
+        0.5,
+        0.03,
+        YOLO421_NOTE,
+        ha="center",
+        fontsize=7,
+        color=COLORS["yolov5n"],
+    )
+    fig.savefig(output)
+    plt.close(fig)
+
+
 def fig_421_model_compare_mosaic0(runs: dict, output: Path) -> None:
     """4.2.1 — So sánh 3 model khi mosaic=0."""
-    ids = [
-        "yolov5n_e100_sz640_lr0.005_b16_mos0",
-        "yolov8n_e100_sz640_lr0.005_b16_mos0",
-        "yolov11n_e100_sz640_lr0.005_b16_mos0",
-    ]
-    labels = ["YOLOv5n", "YOLOv8n", "YOLOv11n"]
-    metrics_keys = [
-        ("precision", "Precision"),
-        ("recall", "Recall"),
-        ("map50", "mAP@0.5"),
-        ("map50_95", "mAP@0.5:0.95"),
-    ]
-    colors = [COLORS["yolov5n"], COLORS["yolov8n"], COLORS["yolov11n"]]
-
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4.8))
-
-    # Left: detection metrics
-    x = np.arange(len(labels))
-    width = 0.18
-    for i, (key, title) in enumerate(metrics_keys):
-        vals = [_metric(_get_run(runs, rid), key) for rid in ids]
-        axes[0].bar(x + (i - 1.5) * width, vals, width, label=title)
-    axes[0].set_xticks(x)
-    axes[0].set_xticklabels(labels)
-    axes[0].set_ylim(0.68, 1.02)
-    axes[0].set_ylabel("Giá trị")
-    axes[0].set_title("Chỉ số phát hiện (mosaic = 0)", fontweight="bold")
-    axes[0].legend(loc="lower right", fontsize=8)
-    axes[0].grid(axis="y", alpha=0.25)
-
-    # Right: FPS + model size
-    fps = [_metric(_get_run(runs, rid), "fps") for rid in ids]
-    size = [_metric(_get_run(runs, rid), "model_size_mb") for rid in ids]
-    ax_fps = axes[1]
-    ax_size = ax_fps.twinx()
-    bars_fps = ax_fps.bar(x - 0.2, fps, 0.35, color=COLORS["yolov8n"], label="FPS", alpha=0.85)
-    bars_size = ax_size.bar(x + 0.2, size, 0.35, color=COLORS["accent"], label="Kích thước (MB)", alpha=0.85)
-    ax_fps.set_xticks(x)
-    ax_fps.set_xticklabels(labels)
-    ax_fps.set_ylabel("FPS")
-    ax_size.set_ylabel("MB")
-    ax_fps.set_title("Tốc độ suy luận & kích thước mô hình", fontweight="bold")
-    for bar, v in zip(bars_fps, fps, strict=True):
-        ax_fps.text(bar.get_x() + bar.get_width() / 2, v + 2, f"{v:.1f}", ha="center", fontsize=8)
-    for bar, v in zip(bars_size, size, strict=True):
-        ax_size.text(bar.get_x() + bar.get_width() / 2, v + 0.1, f"{v:.2f}", ha="center", fontsize=8)
-    lines = [bars_fps, bars_size]
-    ax_fps.legend(lines, ["FPS", "Kích thước (MB)"], loc="upper right", fontsize=8)
-    ax_fps.grid(axis="y", alpha=0.25)
-
-    fig.suptitle("4.2.1 — Đánh giá baseline các mô hình YOLO (mosaic = 0)", fontsize=13, fontweight="bold", y=1.02)
+    fig, ax = plt.subplots(figsize=(11, 5))
+    _draw_421_model_compare_panel(
+        runs, ax, YOLO421_MOSAIC0_IDS, subtitle="mosaic = 0", show_legend=True
+    )
+    ax.set_title("4.2.1 — So sánh các mô hình YOLO (mosaic = 0)", fontweight="bold", pad=12)
+    fig.text(
+        0.5,
+        0.02,
+        YOLO421_NOTE,
+        ha="center",
+        fontsize=7,
+        color=COLORS["yolov5n"],
+        transform=fig.transFigure,
+    )
     fig.savefig(output)
     plt.close(fig)
 
 
 def fig_421_model_compare_mosaic1(runs: dict, output: Path) -> None:
     """4.2.1 — So sánh 3 model khi mosaic=1."""
-    ids = [
-        "yolov5n_e100_sz640_lr0.005_b16_mos1",
-        "yolov8n_e100_sz640_lr0.005_b16_mos1",
-        "yolov11n_e100_sz640_lr0.005_b16_mos1",
-    ]
-    labels = ["YOLOv5n", "YOLOv8n", "YOLOv11n"]
-
-    fig, ax = plt.subplots(figsize=(10, 5))
-    metrics = ["precision", "recall", "map50", "map50_95", "fps"]
-    metric_labels = ["Precision", "Recall", "mAP@0.5", "mAP@0.5:0.95", "FPS"]
-    x = np.arange(len(metric_labels))
-    width = 0.25
-    model_colors = [COLORS["yolov5n"], COLORS["yolov8n"], COLORS["yolov11n"]]
-
-    for i, (rid, label, color) in enumerate(zip(ids, labels, model_colors, strict=True)):
-        run = _get_run(runs, rid)
-        vals = []
-        for m in metrics:
-            v = _metric(run, m)
-            vals.append(v / 180.0 if m == "fps" else v)
-        bars = ax.bar(x + (i - 1) * width, vals, width, label=label, color=color, edgecolor="white")
-        for bar, m, raw in zip(bars, metrics, [_metric(run, m) for m in metrics], strict=True):
-            txt = f"{raw:.3f}" if m != "fps" else f"{raw:.1f}"
-            ax.text(bar.get_x() + bar.get_width() / 2, bar.get_height() + 0.01, txt, ha="center", fontsize=7, rotation=0)
-
-    ax.set_xticks(x)
-    ax.set_xticklabels(metric_labels)
-    ax.set_ylim(0, 1.08)
-    ax.set_ylabel("Giá trị (FPS chia 180 để hiển thị chung)")
+    fig, ax = plt.subplots(figsize=(11, 5))
+    _draw_421_model_compare_panel(
+        runs, ax, YOLO421_MOSAIC1_IDS, subtitle="mosaic = 1", show_legend=True
+    )
     ax.set_title("4.2.1 — So sánh các mô hình YOLO (mosaic = 1)", fontweight="bold", pad=12)
-    ax.legend()
-    ax.grid(axis="y", alpha=0.25)
-    ax.text(0.02, 0.02, "Ghi chú: FPS được scale (/180) để hiển thị cùng biểu đồ; nhãn trên cột là giá trị thực.",
-            transform=ax.transAxes, fontsize=7, color=COLORS["yolov5n"])
+    fig.text(
+        0.5,
+        0.02,
+        YOLO421_NOTE,
+        ha="center",
+        fontsize=7,
+        color=COLORS["yolov5n"],
+        transform=fig.transFigure,
+    )
     fig.savefig(output)
     plt.close(fig)
 
@@ -461,8 +505,7 @@ def generate_all(output_dir: Path, summary_path: Path, best_path: Path) -> list[
     runs = summary["runs"]
 
     outputs = [
-        output_dir / "fig_yolo_421_mosaic0_compare.png",
-        output_dir / "fig_yolo_421_mosaic1_compare.png",
+        output_dir / "fig_yolo_421_mosaic_compare.png",
         output_dir / "fig_yolo_421_mosaic_effect.png",
         output_dir / "fig_yolo_422_imgsz.png",
         output_dir / "fig_yolo_422_lr.png",
@@ -472,15 +515,14 @@ def generate_all(output_dir: Path, summary_path: Path, best_path: Path) -> list[
         output_dir / "fig_yolo_423_best_model.png",
     ]
 
-    fig_421_model_compare_mosaic0(runs, outputs[0])
-    fig_421_model_compare_mosaic1(runs, outputs[1])
-    fig_421_yolov8n_mosaic_effect(runs, outputs[2])
-    fig_422_imgsz(runs, outputs[3])
-    fig_422_lr(runs, outputs[4])
-    fig_422_batch(runs, outputs[5])
-    fig_422_hyperparam_summary(summary, outputs[6])
-    fig_423_baseline_vs_best(runs, best, outputs[7])
-    fig_423_best_model_card(best, outputs[8])
+    fig_421_model_compare_combined(runs, outputs[0])
+    fig_421_yolov8n_mosaic_effect(runs, outputs[1])
+    fig_422_imgsz(runs, outputs[2])
+    fig_422_lr(runs, outputs[3])
+    fig_422_batch(runs, outputs[4])
+    fig_422_hyperparam_summary(summary, outputs[5])
+    fig_423_baseline_vs_best(runs, best, outputs[6])
+    fig_423_best_model_card(best, outputs[7])
 
     return outputs
 
